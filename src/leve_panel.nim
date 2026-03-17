@@ -20,32 +20,32 @@ const defaultConfig =
 # Panel Settings
 [Panel]
 pos = "bottom"
-color = "070C1E"
+color = "#070C1E"
 size = 46
 icon_size = 36
 
 # Favorite Apps
 [[app]]
 name = "Menu"
-icon = "icons/menu.png"
+icon = "menu.png"
 exec = "griddle"
 terminal = false
 
 [[app]]
 name = "Files"
-icon = "folder"
+icon = "folder-blue.png"
 exec = "pcmanfm"
 terminal = false
 
 [[app]]
 name = "Terminal"
-icon = "terminal"
+icon = "terminal.png"
 exec = "foot"
 terminal = false
 
 [[app]]
 name = "Browser"
-icon = "web-browser"
+icon = "google-chrome.png"
 exec = "google-chrome"
 terminal = false
 """
