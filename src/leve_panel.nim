@@ -122,7 +122,7 @@ var hitBoxes: seq[HitBox] = @[]
 var display = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 
-include leve_panel/[config, favorites, clock, volume, panel]
+include "leve-panel"/[config, favorites, clock, volume, panel]
 
 # ----------------------------------------------------------------------------------------
 #                                    Get Output
