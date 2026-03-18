@@ -328,7 +328,7 @@ proc main() =
   # Parse config and get favorite apps
   let config = initFile("config.toml", defaultConfig)
   favorites = parseConfig(config)
-  #echo favorites
+
   # Connect to the Display
   p.display = connectDisplay(nil)
   if p.display == nil:

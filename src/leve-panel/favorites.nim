@@ -7,7 +7,6 @@
 
 proc createBtn(fav: Favorite): Image =
   let padding = (p.size - p.iconSize) / 2
-  let iconPath = getConfigDir() / "icons" / "favorites"
 
   # Create button
   let button = newImage(p.size, p.size)
@@ -15,15 +14,12 @@ proc createBtn(fav: Favorite): Image =
   var icon: Image
 
   # Load Icon
-  echo iconPath / fav.icon
   if fav.icon.endsWith(".png"):
-    echo "png found"
-    icon = readImage(iconPath / fav.icon)
+    icon = readImage(fav.icon)
 
-  # TODO fix svg support
-  if fav.icon.endsWith(".svg"):
+  elif fav.icon.endsWith(".svg"):
     echo "svg block"
-    icon = readImage(iconPath / "folder.svg")
+    icon = readImage(fav.icon)
 
     #button.fill(rgba(255, 255, 255, 255))
 
@@ -34,12 +30,12 @@ proc createBtn(fav: Favorite): Image =
       translate(vec2(-450, -450))
     )
 
-  if icon.width > 0 and icon.height > 0:
-    echo "icon"
+  else:
+    echo "Error: Icon not found"
+    icon = newImage(p.size, p.size)
 
   # Resize Icon
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
   button.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
-
 
   return button

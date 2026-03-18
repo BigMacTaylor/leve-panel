@@ -5,6 +5,34 @@
 #
 # ========================================================================================
 
+proc getConfigDir(): string =
+  let home = getEnv("XDG_CONFIG_HOME")
+  if not home.isEmptyOrWhitespace():
+    result = home / "leve-panel"
+  else:
+    result = os.getHomeDir() / ".config" / "leve-panel"
+
+proc initFile(fileName: string, defaultData: string): string =
+  let path = getConfigDir()
+  if not fileExists(path / fileName):
+    if not dirExists(path):
+      createDir(path)
+    writeFile(path / fileName, defaultData)
+
+  return path / fileName
+
+proc getIconPath(s: string): string =
+  var icon = s
+
+  if not ('/' in icon):
+    icon = getConfigDir() / "icons" / "favorites" / icon
+
+  if fileExists(icon):
+    return icon
+  else:
+    echo "Error: Invalid icon path \n"
+    return ""
+
 proc parseConfig(configFile: string): seq[Favorite] =
   echo "Reading config..."
 
@@ -41,8 +69,9 @@ proc parseConfig(configFile: string): seq[Favorite] =
     if app.hasKey("name"):
       fav.name = app["name"].getStr()
     if app.hasKey("icon"):
-      #fav.icon = getIconPath(app["icon"].getStr())
-      fav.icon = app["icon"].getStr()
+      fav.icon = getIconPath(app["icon"].getStr())
+    else:
+      echo "Error: Missing icon path \n"
     if app.hasKey("exec"):
       fav.exec = app["exec"].getStr()
     if app.hasKey("terminal"):
@@ -50,18 +79,3 @@ proc parseConfig(configFile: string): seq[Favorite] =
 
     result.add(fav)
 
-proc getConfigDir(): string =
-  let home = getEnv("XDG_CONFIG_HOME")
-  if not home.isEmptyOrWhitespace():
-    result = home / "leve-panel"
-  else:
-    result = os.getHomeDir() / ".config" / "leve-panel"
-
-proc initFile(fileName: string, defaultData: string): string =
-  let path = getConfigDir()
-  if not fileExists(path / fileName):
-    if not dirExists(path):
-      createDir(path)
-    writeFile(path / fileName, defaultData)
-
-  return path / fileName
