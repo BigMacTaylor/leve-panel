@@ -6,7 +6,8 @@
 # ========================================================================================
 
 proc parseConfig(configFile: string): seq[Favorite] =
-  echo "config start"
+  echo "Reading config..."
+
   let config =
     try:
       parseFile(configFile)
@@ -19,11 +20,18 @@ proc parseConfig(configFile: string): seq[Favorite] =
     if panel.hasKey("pos"):
       p.pos = parseEnum[PanelPos](panel["pos"].getStr())
     if panel.hasKey("color"):
-      p.color = panel["color"].getStr()
+      try:
+        discard parseHtmlColor(panel["color"].getStr())
+        p.color = panel["color"].getStr()
+      except:
+        echo "Error: Invalid color in config, using default."
     if panel.hasKey("size"):
       p.size = int32(panel["size"].getInt())
     if panel.hasKey("icon_size"):
       p.icon_size = panel["icon_size"].getInt()
+    # Keep icon size smaller than panel size
+    if p.icon_size > p.size:
+      p.icon_size = p.size
 
   let apps = config["app"].getElems()
 
@@ -39,9 +47,8 @@ proc parseConfig(configFile: string): seq[Favorite] =
       fav.exec = app["exec"].getStr()
     if app.hasKey("terminal"):
       fav.terminal = app["terminal"].getBool()
-    echo "add ", fav.name
+
     result.add(fav)
-  echo "config end"
 
 proc getConfigDir(): string =
   let home = getEnv("XDG_CONFIG_HOME")

@@ -89,9 +89,9 @@ type LevePanel = ref object
   surface: ptr wl.Surface
   layerSurface: ptr ZwlrLayerSurfaceV1
   layerShell: ptr ZwlrLayerShellV1
-  size: int32 = 42
+  size: int32 = 46
   iconSize = 36
-  pos: PanelPos = PanelPos.top
+  pos: PanelPos = PanelPos.bottom
   color: string = "#070C1E"
   mouse_x: float
   mouse_y: float

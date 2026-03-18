@@ -93,7 +93,7 @@ proc onFavClick(fav: pointer) =
 # ----------------------------------------------------------------------------------------
 
 proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
-  echo "Draw Frame Start"
+  echo "Drawing frame"
   let width = display.width
   let height = panel.size
   let stride = width * 4
