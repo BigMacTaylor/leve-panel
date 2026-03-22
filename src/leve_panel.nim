@@ -11,6 +11,13 @@ import wayland/protocols/unstable/wlrlayershell/v1/client
 import std/[os, posix, strutils, osproc]
 import parsetoml
 import pixie
+import posix, std/times
+
+# Import system calls
+proc timerfd_create(clockid, flags: cint): cint {.importc, header: "<sys/timerfd.h>".}
+proc timerfd_settime(
+  fd: cint, flags: cint, newVal: ptr ITimerspec, oldVal: ptr ITimerspec
+): cint {.importc, header: "<sys/timerfd.h>".}
 
 const defaultConfig =
   """
@@ -77,7 +84,6 @@ type PointerData = object
   button: uint32
   state: uint32
 
-
 type LevePanel = ref object
   display: ptr wl.Display
   output: ptr Output
@@ -105,20 +111,14 @@ type Favorite = object
 
 var favorites: seq[Favorite]
 
-type
-  HitBox = tuple
-    id: int
-    start: array[2, int]
-    `end`: array[2, int]
-    #handler: proc()
-    #handler: proc(f: ptr Favorite): bool
-    #widget: ptr Favorite
-    #handler: proc(s: string)
-    handler: proc(data: pointer)
-    #s: string
-    data: pointer
+type Widget = object
+  startPos: array[2, int]
+  endPos: array[2, int]
+  img: Image
+  handler: proc(data: pointer)
+  data: pointer
 
-var hitBoxes: seq[HitBox] = @[]
+var widgets: seq[Widget] = @[]
 var display = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 
@@ -130,8 +130,6 @@ include "leve-panel"/[config, favorites, clock, volume, panel]
 
 proc activateWidget(id: int) =
   echo "activate "
-
-
 
 proc xdgOutputLogicalPos(
     data: pointer, xdgOutput: ptr ZxdgOutputV1, width: int32, height: int32
@@ -174,21 +172,16 @@ proc bindOutput(output: ptr Output, manager: ptr ZxdgOutputManagerV1) =
 #                                    Callbacks
 # ----------------------------------------------------------------------------------------
 
-proc seatCapabilities(
-  data: pointer;
-  seat: ptr Seat;
-  capabilities: uint32;
-) =
+proc seatCapabilities(data: pointer, seat: ptr Seat, capabilities: uint32) =
   discard
 
 proc fixedToDouble(f: Fixed): float =
   return float(f / 256)
 
-
 # Pointer Motion
-proc pointerHandleMotion(data: pointer, pointer: ptr Pointer, 
-                         time: uint32, surfaceX: Fixed, 
-                         surfaceY: Fixed) =
+proc pointerHandleMotion(
+    data: pointer, pointer: ptr Pointer, time: uint32, surfaceX: Fixed, surfaceY: Fixed
+) =
   # Convert Wayland fixed point to float/integer
   p.pointer.event = Event.motion
   p.pointer.pos_x = fixedToDouble(surfaceX)
@@ -198,25 +191,28 @@ proc pointerHandleMotion(data: pointer, pointer: ptr Pointer,
   p.mouse_y = fixedToDouble(surfaceY)
   echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
 
+proc dummyProc(data: pointer) =
+  echo"hello, dummy!"
 
-
-
-
-proc isWithin(box: tuple, x, y: int): bool =
-  let xStart = box.start[0]
-  let yStart = box.start[1]
-  let xEnd = box.`end`[0]
-  let yEnd = box.`end`[1]
+proc isWithin(widget: Widget, x, y: int): bool =
+  let xStart = widget.startPos[0]
+  let yStart = widget.startPos[1]
+  let xEnd = widget.endPos[0]
+  let yEnd = widget.endPos[1]
 
   if x >= xStart and x <= xEnd and y >= yStart and y <= yEnd:
     echo "Within bounds !"
     return true
 
-
 # Button Click
-proc pointerHandleButton(data: pointer, pointer: ptr Pointer,
-                         serial: uint32, time: uint32, button: uint32,
-                         state: uint32) =
+proc pointerHandleButton(
+    data: pointer,
+    pointer: ptr Pointer,
+    serial: uint32,
+    time: uint32,
+    button: uint32,
+    state: uint32,
+) =
   p.pointer.event = Event.button
   p.pointer.button = button
   p.pointer.state = state
@@ -229,46 +225,43 @@ proc pointerHandleButton(data: pointer, pointer: ptr Pointer,
   if state == 1:
     echo "Button clicked: ", button, " ", p.mouse_x, ", ", p.mouse_y
 
-
   if state == 1 and button == 272:
-    for box in hitBoxes:
-      if isWithin(box, int(p.mouse_x), int(p.mouse_y)):
-        echo box.id
-        activateWidget(box.id)
+    for widget in widgets:
+      if isWithin(widget, int(p.mouse_x), int(p.mouse_y)):
+        #echo box.id
+        #activateWidget(box.id)
 
         # Execute the specific action
         #box.handler(box.s) # working
-
-        box.handler(box.data)
-        return # Found it, stop looking
+        if not widget.handler.isNil:
+          widget.handler(widget.data)
+          return # Found it, stop looking
 
     #echo "Button clicked: ", p.mouse_x, ", ", p.mouse_y
 
-
-
-
-
-
-
-
-
 # Enter Surface
-proc pointerHandleEnter(data: pointer, pointer: ptr Pointer,
-                        serial: uint32, surface: ptr Surface,
-                        surfaceX: Fixed, surfaceY: Fixed) =
+proc pointerHandleEnter(
+    data: pointer,
+    pointer: ptr Pointer,
+    serial: uint32,
+    surface: ptr Surface,
+    surfaceX: Fixed,
+    surfaceY: Fixed,
+) =
   p.pointer.event = Event.enter
   echo "Pointer entered surface"
 
 # Leave Surface
-proc pointerHandleLeave(data: pointer, pointer: ptr Pointer,
-                        serial: uint32, surface: ptr Surface) =
+proc pointerHandleLeave(
+    data: pointer, pointer: ptr Pointer, serial: uint32, surface: ptr Surface
+) =
   p.pointer.event = Event.leave
   echo "Pointer left surface"
 
 # Scroll on Surface
-proc pointerHandleScroll(data: pointer, pointer: ptr Pointer,
-                        time: uint32, axis: uint32,
-                        value: Fixed) =
+proc pointerHandleScroll(
+    data: pointer, pointer: ptr Pointer, time: uint32, axis: uint32, value: Fixed
+) =
   echo "Pointer scroll on surface"
 
 # Setup Pointer Listener
@@ -277,14 +270,12 @@ var pointerListener = wl.PointerListener(
   leave: pointerHandleLeave, # Handle leave if needed
   motion: pointerHandleMotion,
   button: pointerHandleButton,
-  axis: pointerHandleScroll,  # Handle scroll if needed
+  axis: pointerHandleScroll, # Handle scroll if needed
   frame: nil,
   axis_source: nil,
   axis_stop: nil,
-  axis_discrete: nil
+  axis_discrete: nil,
 )
-
-
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry
@@ -313,8 +304,6 @@ proc globalRegistry(
   elif intf == "wl_seat":
     panel.seat = cast[ptr wl.Seat](registry.bind(id, addr wl_seat_interface, 1))
     #panel.seat.addListener(addr pointerListener, nil)
-
-
 
 proc removeGlobalRegistry(data: pointer, registry: ptr wl.Registry, name: uint32) =
   # This space deliberately left blank
@@ -407,10 +396,7 @@ proc main() =
   discard p.layerSurface.addListener(addr surface_listener, addr p)
 
   # Get Seat (Seat holds the pointer)
-  let seat_listener = SeatListener(
-    capabilities: seatCapabilities,
-    name: nil
-  )
+  let seat_listener = SeatListener(capabilities: seatCapabilities, name: nil)
   discard p.seat.addListener(addr seat_listener, nil)
 
   # Get Pointer
@@ -421,16 +407,65 @@ proc main() =
   # Add pointer listener
   discard pointer.addListener(addr pointerListener, nil)
 
-
   # Commit surface
   p.surface.commit()
 
-  # Event Loop
-  while dispatch(p.display) != -1:
-    # Wait for events (resize, close, etc.)
-    discard
+  # --- Timer Setup ---
+  let tfd = timerfd_create(CLOCK_MONOTONIC, 0)
+  var spec: Itimerspec
+  spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
+  spec.it_value.tv_sec = posix.Time(1) # Start in 1s
+  discard timerfd_settime(tfd, 0, addr spec, nil)
 
-  p.seat.release()
+  let wl_fd = get_fd(p.display)
+
+  # --- The Event Loop ---
+  var fds: array[2, TPollfd]
+  fds[0] = TPollfd(fd: wl_fd, events: POLLIN)
+  fds[1] = TPollfd(fd: tfd, events: POLLIN)
+
+  echo "Nim Wayland Clock Running..."
+
+  while true:
+    # 1. Prepare Wayland
+    while prepareRead(p.display) != 0:
+      discard dispatchPending(p.display)
+    discard flush(p.display)
+
+    # 2. Poll both FDs (infinite timeout)
+    if poll(addr fds[0], 2, -1) < 0:
+      break
+
+    # 3. Handle Wayland Events
+    if (fds[0].revents and POLLIN) != 0:
+      discard read_events(p.display)
+      discard dispatchPending(p.display)
+    else:
+      cancel_read(p.display)
+
+    # 4. Handle Timer (The Clock Tick)
+    if (fds[1].revents and POLLIN) != 0:
+      var expirations: uint64
+      discard read(tfd, addr expirations, sizeof(expirations))
+
+      # Redraw logic here
+      echo "Tick: ", now().format("HH:mm:ss")
+
+      if now().second == 0:
+        let buffer = drawFrame(addr p)
+        #p.surface.updateFrame()
+
+        # Attach and Commit
+        p.surface.damage(0, 0, high(int32), high(int32))
+        p.surface.attach(buffer, 0, 0)
+        p.surface.commit()
+
+  # Event Loop
+  #while dispatch(p.display) != -1:
+  # Wait for events (resize, close, etc.)
+  #discard
+
+  #p.seat.release()
 
 when isMainModule:
   main()

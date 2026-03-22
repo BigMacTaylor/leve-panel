@@ -80,13 +80,14 @@ proc muteVolume(w: EventBox, event: EventButton): bool =
   setVolume(0)
   w.updateIcon()
 ]#
-proc newVolWidget(): Image =
+
+proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   let padding = (p.size - p.iconSize) / 2
 
   # Create widget
-  let w = newImage(p.size, p.size)
+  let icon = newImage(p.size, p.size)
 
-  w.updateIcon()
+  icon.updateIcon()
 
 
 
@@ -95,9 +96,11 @@ proc newVolWidget(): Image =
   #w.connect("button-press-event", muteVolume)
 
   #w = w.updateIcon(vol)
-  return w
 
+  # Create widget
+  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, handler: nil, data: nil)
 
+  return widget
 
 
 

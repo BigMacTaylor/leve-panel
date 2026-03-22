@@ -16,7 +16,8 @@ proc getTime(): string =
   return time & "\n" & date
 
 
-proc newClockWidget(): Image =
+
+proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create clock
   let clock = newImage(p.size * 2, p.size)
   let text = getTime()
@@ -38,6 +39,8 @@ proc newClockWidget(): Image =
   clock.fillText(layout, translate(vec2(0, 0)))
   #clock.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
 
+  # Create widget
+  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: clock, handler: nil, data: nil)
 
-  return clock
+  return widget
 

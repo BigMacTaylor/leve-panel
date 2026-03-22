@@ -55,39 +55,6 @@ proc allocate_shm_file(size: csize_t): cint =
 
   return fd
 
-
-proc exec(fav: ptr Favorite) =
-  var cmd = fav.exec
-
-  # Trim '%' and everything afterwards
-  if '%' in cmd:
-    cmd = cmd.split('%')[0]
-
-  if not fav.terminal:
-    discard execShellCmd(cmd & " &")
-    return
-
-  # If terminal
-  let terminal = getEnv("TERMINAL")
-  if terminal != "":
-    cmd = terminal & "-e " & cmd
-  elif fileExists("/etc/alternatives/x-terminal-emulator"):
-    cmd = "/etc/alternatives/x-terminal-emulator -e " & cmd
-  else:
-    cmd = "foot " & cmd
-
-  discard execShellCmd(cmd & " &")
-
-
-
-
-proc onFavClick(fav: pointer) =
-  echo "on click"
-  echo cast[ptr Favorite](fav).name
-  exec(cast[ptr Favorite](fav))
-  #echo new.name
-
-
 # ----------------------------------------------------------------------------------------
 #                                    Draw Panel
 # ----------------------------------------------------------------------------------------
@@ -111,10 +78,14 @@ proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
     discard close(fd)
     return nil
 
-  let pool = panel.memBuffer.create_pool(fd, cint(size))
-  let buffer = pool.create_buffer(
+  let pool = panel.memBuffer.createPool(fd, cint(size))
+  let buffer = pool.createBuffer(
     #0, cint(width), cint(height), cint(stride), cast[uint32](format_xrgb8888)
-    0, cint(width), cint(height), cint(stride), cast[uint32](format_xbgr8888)
+    0,
+    cint(width),
+    cint(height),
+    cint(stride),
+    cast[uint32](format_xbgr8888),
   )
 
   # Create panel bar area
@@ -123,40 +94,38 @@ proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
 
   let ctx = panelBG.newContext()
 
+  # Zero out Widgets to avoid duplicates
+  if widgets.len > 0:
+    widgets = @[]
+
   # Add favorite buttons
-  var id = 0
   var pos: float32 = 0
-
-  # Zero out hitBoxes to avoid duplicates
-  if hitBoxes.len > 0:
-    hitBoxes = @[]
-
   for fav in favorites:
-    let hitBox: HitBox = (id: id, start: [int(pos), 0], `end`: [int(pos) + panel.size, 0 + panel.size], handler: onFavClick, data: addr fav)
-    hitBoxes.add(hitBox)
-    let favBtn = createBtn(fav)
-    ctx.drawImage(favBtn, pos, 0)
-    pos = pos + float32(panel.size)
-    id = id + 1
+    # newWidget = (favorite, startPos, endPos)
+    let widget = newFavWidget(fav, [int(pos), 0], [int(pos) + p.size, p.size])
+    widgets.add(widget)
+    ctx.drawImage(widget.img, pos, 0)
+    pos = pos + float32(p.size)
 
   # Placeholder for switcher
   pos = (width / 2) - float32(p.size)
-  let widget = newClockWidget()
-  ctx.drawImage(widget, pos, 0)
-
+  let clock = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+  widgets.add(clock)
+  ctx.drawImage(clock.img, pos, 0)
 
   # Add system tray items
   pos = float32(width - p.size)
   pos = pos - float32(p.size)
 
-  let clock = newClockWidget()
-  ctx.drawImage(clock, pos, 0)
+  let clock_1 = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+  widgets.add(clock_1)
+  ctx.drawImage(clock_1.img, pos, 0)
   pos = pos - float32(p.size)
 
-  let vol = newVolWidget()
-  ctx.drawImage(vol, pos, 0)
+  let vol = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
+  widgets.add(vol)
+  ctx.drawImage(vol.img, pos, 0)
   pos = pos - float32(p.size)
-
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
