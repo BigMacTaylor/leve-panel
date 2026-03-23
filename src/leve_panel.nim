@@ -1,7 +1,7 @@
 # ========================================================================================
 #
 #                                   Leve Panel
-#                          version 1.0.0 by Mac_Taylor
+#                          version 1.0.1 by Mac_Taylor
 #
 # ========================================================================================
 
@@ -28,7 +28,7 @@ const defaultConfig =
 pos = "bottom"
 color = "#070C1E"
 size = 46
-icon_size = 36
+icon_size = 32
 
 # Favorite Apps
 [[app]]
