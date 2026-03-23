@@ -36,16 +36,16 @@ proc volumeChanged(scale: Range) =
   let volume = int(scale.getValue())
   setVolume(volume)
 ]#
-proc updateIcon(w: Image) =
+proc updateIcon(img: Image) =
   let iconSize = if p.iconSize > 24:
-    p.iconSize - 10
+    p.iconSize - 4
   else:
     p.iconSize
   let padding = (p.size - iconSize) / 2
   let iconPath = getConfigDir() / "icons" / "volume"
   var iconName: string
   let vol = getVolume()
-  echo vol
+  echo "volume ", vol
 
   if vol <= 0:
     iconName = "audio-volume-muted-symbolic.png"
@@ -62,24 +62,42 @@ proc updateIcon(w: Image) =
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
-  w.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
   return
-#[
-proc onScroll(w: EventBox, e: EventScroll): bool =
-  echo "scroll"
-  let vol = getVolume()
-  w.updateIcon()
 
-proc muteVolume(w: EventBox, event: EventButton): bool =
+proc onMute(w: pointer) =
+  echo "mute"
   if cur_vol == 100:
     cur_vol = 0
   else:
     cur_vol = 100
   echo "mute"
-  setVolume(0)
-  w.updateIcon()
-]#
+  #setVolume(0)
+  echo "volume ", getVolume()
+  #cast[Image](w).updateIcon()
+
+
+  let buffer = drawFrame(addr p)
+
+  # Attach and Commit
+  p.surface.damage(0, 0, high(int32), high(int32))
+  p.surface.attach(buffer, 0, 0)
+  p.surface.commit()
+
+
+
+proc onVolClick(icon: pointer) =
+  echo "open volume"
+  #cast[Image](icon).updateIcon()
+
+proc volUp(icon: pointer) =
+  echo "vol up"
+  #cast[Image](icon).updateIcon()
+
+proc volDown(icon: pointer) =
+  echo "vol down"
+  #cast[Image](icon).updateIcon()
 
 proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   let padding = (p.size - p.iconSize) / 2
@@ -89,16 +107,20 @@ proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
 
   icon.updateIcon()
 
-
-
-
-  #w.connect("scroll-event", onScroll)
-  #w.connect("button-press-event", muteVolume)
-
-  #w = w.updateIcon(vol)
+  # Create callbacks
+  var callBacks: seq[CallBack] = @[]
+  let click: CallBack = ("click_l", onVolClick)
+  callBacks.add(click)
+  let mute: CallBack = ("click_m", onMute)
+  callBacks.add(mute)
+  let scrollUp: CallBack = ("scroll_up", volUp)
+  callBacks.add(scrollUp)
+  let scrollDown: CallBack = ("scroll_down", volDown)
+  callBacks.add(scrollDown)
 
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, handler: nil, data: nil)
+  var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  widget.data = addr widget
 
   return widget
 

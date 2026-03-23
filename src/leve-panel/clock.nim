@@ -15,7 +15,8 @@ proc getTime(): string =
 
   return time & "\n" & date
 
-
+proc onClock(data: pointer) =
+  echo "open clock"
 
 proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create clock
@@ -39,8 +40,12 @@ proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   clock.fillText(layout, translate(vec2(0, 0)))
   #clock.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
 
+  # Create callbacks
+  let click: CallBack = ("click_l", onClock)
+  let callBacks: seq[CallBack] = @[click]
+
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: clock, handler: nil, data: nil)
+  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: clock, callBacks: callBacks)
 
   return widget
 

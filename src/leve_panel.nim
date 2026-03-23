@@ -101,7 +101,7 @@ type LevePanel = ref object
   color: string = "#070C1E"
   mouse_x: float
   mouse_y: float
-  pointer: PointerData
+  #pointer: PointerData
 
 type Favorite = object
   name: string
@@ -111,17 +111,25 @@ type Favorite = object
 
 var favorites: seq[Favorite]
 
+type CallBack = tuple
+  event: string
+  handler: proc(data: pointer)
+
+type CallBacks = seq[CallBack]
+
 type Widget = object
   startPos: array[2, int]
   endPos: array[2, int]
   img: Image
-  handler: proc(data: pointer)
+  callBacks: CallBacks
   data: pointer
 
 var widgets: seq[Widget] = @[]
 var display = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 
+
+proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer
 include "leve-panel"/[config, favorites, clock, volume, panel]
 
 # ----------------------------------------------------------------------------------------
@@ -183,24 +191,21 @@ proc pointerHandleMotion(
     data: pointer, pointer: ptr Pointer, time: uint32, surfaceX: Fixed, surfaceY: Fixed
 ) =
   # Convert Wayland fixed point to float/integer
-  p.pointer.event = Event.motion
-  p.pointer.pos_x = fixedToDouble(surfaceX)
-  p.pointer.pos_y = fixedToDouble(surfaceY)
+  #p.pointer.event = Event.motion
+  #p.pointer.pos_x = fixedToDouble(surfaceX)
+  #p.pointer.pos_y = fixedToDouble(surfaceY)
 
   p.mouse_x = fixedToDouble(surfaceX)
   p.mouse_y = fixedToDouble(surfaceY)
   echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
 
-proc dummyProc(data: pointer) =
-  echo"hello, dummy!"
+proc isWithin(w: Widget, x, y: int): bool =
+  #let xStart = widget.startPos[0]
+  #let yStart = widget.startPos[1]
+  #let xEnd = widget.endPos[0]
+  #let yEnd = widget.endPos[1]
 
-proc isWithin(widget: Widget, x, y: int): bool =
-  let xStart = widget.startPos[0]
-  let yStart = widget.startPos[1]
-  let xEnd = widget.endPos[0]
-  let yEnd = widget.endPos[1]
-
-  if x >= xStart and x <= xEnd and y >= yStart and y <= yEnd:
+  if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
     echo "Within bounds !"
     return true
 
@@ -213,31 +218,37 @@ proc pointerHandleButton(
     button: uint32,
     state: uint32,
 ) =
-  p.pointer.event = Event.button
-  p.pointer.button = button
-  p.pointer.state = state
 
-  echo p.pointer.event
-  echo p.pointer.button
-  echo p.pointer.state
-
-  #if state == WL_POINTER_BUTTON_STATE_PRESSED:
   if state == 1:
     echo "Button clicked: ", button, " ", p.mouse_x, ", ", p.mouse_y
 
   if state == 1 and button == 272:
     for widget in widgets:
-      if isWithin(widget, int(p.mouse_x), int(p.mouse_y)):
-        #echo box.id
-        #activateWidget(box.id)
+      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+        for cb in widget.callBacks:
+          if cb.event == "click_l":
+            echo "clicked"
+            cb.handler(widget.data)
+            return # Found it, stop looking
 
-        # Execute the specific action
-        #box.handler(box.s) # working
-        if not widget.handler.isNil:
-          widget.handler(widget.data)
-          return # Found it, stop looking
+  if state == 1 and button == 273:
+    for widget in widgets:
+      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+        for cb in widget.callBacks:
+          if cb.event == "click_r":
+            echo "clicked"
+            cb.handler(widget.data)
+            return # Found it, stop looking
 
-    #echo "Button clicked: ", p.mouse_x, ", ", p.mouse_y
+  if state == 1 and button == 274:
+    for widget in widgets:
+      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+        for cb in widget.callBacks:
+          if cb.event == "click_m":
+            echo "clicked"
+            cb.handler(widget.data)
+            return # Found it, stop looking
+
 
 # Enter Surface
 proc pointerHandleEnter(
@@ -248,14 +259,14 @@ proc pointerHandleEnter(
     surfaceX: Fixed,
     surfaceY: Fixed,
 ) =
-  p.pointer.event = Event.enter
+  #p.pointer.event = Event.enter
   echo "Pointer entered surface"
 
 # Leave Surface
 proc pointerHandleLeave(
     data: pointer, pointer: ptr Pointer, serial: uint32, surface: ptr Surface
 ) =
-  p.pointer.event = Event.leave
+  #p.pointer.event = Event.leave
   echo "Pointer left surface"
 
 # Scroll on Surface
@@ -263,6 +274,27 @@ proc pointerHandleScroll(
     data: pointer, pointer: ptr Pointer, time: uint32, axis: uint32, value: Fixed
 ) =
   echo "Pointer scroll on surface"
+
+  echo axis
+  echo value
+
+  if axis == 0 and value == -3840: # scroll up
+    for widget in widgets:
+      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+        for cb in widget.callBacks:
+          if cb.event == "scroll_up":
+            echo "scroll_up"
+            cb.handler(widget.data)
+            return # Found it, stop looking
+
+  if axis == 0 and value == 3840: # scroll down
+    for widget in widgets:
+      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+        for cb in widget.callBacks:
+          if cb.event == "scroll_down":
+            echo "scroll_down"
+            cb.handler(widget.data)
+            return # Found it, stop looking
 
 # Setup Pointer Listener
 var pointerListener = wl.PointerListener(
@@ -449,7 +481,7 @@ proc main() =
       discard read(tfd, addr expirations, sizeof(expirations))
 
       # Redraw logic here
-      echo "Tick: ", now().format("HH:mm:ss")
+      #echo "Tick: ", now().format("HH:mm:ss")
 
       if now().second == 0:
         let buffer = drawFrame(addr p)

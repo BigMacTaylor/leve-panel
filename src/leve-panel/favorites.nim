@@ -62,6 +62,7 @@ proc exec(fav: ptr Favorite) =
     cmd = "foot " & cmd
 
   discard execShellCmd(cmd & " &")
+
 proc onFavClick(fav: pointer) =
   echo "on click"
   echo cast[ptr Favorite](fav).name
@@ -100,7 +101,11 @@ proc newFavWidget(fav: Favorite, startPos: array[2, int], endPos: array[2, int])
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
   button.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
+  # Create callbacks
+  let click: CallBack = ("click_l", onFavClick)
+  let callBacks: seq[CallBack] = @[click]
+
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: button, handler: onFavClick, data: addr fav)
+  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: button, callBacks: callBacks, data: addr fav)
 
   return widget
