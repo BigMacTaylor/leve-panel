@@ -102,10 +102,10 @@ proc newFavWidget(fav: Favorite, startPos: array[2, int], endPos: array[2, int])
   button.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
   # Create callbacks
-  let click: CallBack = ("click_l", onFavClick)
+  let click: CallBack = ("click_l", proc(data: pointer) = onFavClick(addr fav))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: button, callBacks: callBacks, data: addr fav)
+  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: button, callBacks: callBacks)
 
   return widget

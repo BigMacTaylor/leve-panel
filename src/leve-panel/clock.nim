@@ -5,8 +5,6 @@
 #
 # ========================================================================================
 
-import times
-
 # Callback function to update the label
 proc getTime(): string =
   let now = now()

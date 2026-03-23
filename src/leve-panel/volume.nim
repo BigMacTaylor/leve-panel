@@ -7,6 +7,32 @@
 
 var vol_image: Image
 var cur_vol = 100
+var volMute = false
+
+type VolState = enum
+  mute
+  low
+  med
+  high
+
+var volState = VolState.high
+
+
+#[
+proc setVolume(volume: int) =
+  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ " & $volume & "%"
+  #discard execProcess(cmd & $volume & "%")
+  let (output, status) = execCmdEx(cmd, options={})
+
+  if status != 0:
+    echo "Error setting volume level"
+    return
+
+proc volumeChanged(scale: Range) =
+  let volume = int(scale.getValue())
+  setVolume(volume)
+]#
+
 
 proc getVolume(): int =
   let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
@@ -22,21 +48,86 @@ proc getVolume(): int =
 
   #return toInt(f * 100)
   return cur_vol
-#[
-proc setVolume(volume: int) =
-  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ " & $volume & "%"
-  #discard execProcess(cmd & $volume & "%")
-  let (output, status) = execCmdEx(cmd, options={})
 
-  if status != 0:
-    echo "Error setting volume level"
+proc getVolState(): VolState =
+  if cur_vol <= 0 or volMute:
+    return VolState.mute
+  elif cur_vol > 0 and cur_vol <= 50:
+    return VolState.low
+  elif cur_vol > 50 and cur_vol <= 75:
+    return VolState.med
+  else: # cur_vol > 75
+    return VolState.high
+
+volState = getVolState()
+
+proc onMute(w: pointer) =
+  echo "on mute"
+  echo "volume ", getVolume()
+
+  if volMute:
+    volMute = false
+  else:
+    volMute = true
+    #volState = VolState.mute
+
+  #setVolume(0)
+
+  # Update state and frame
+  volState = getVolState()
+  p.updateFrame()
+
+
+
+proc onVolClick(icon: pointer) =
+  echo "open volume"
+  echo "volume ", getVolume()
+  #cast[Image](icon).updateIcon()
+
+proc volUp(icon: pointer) =
+  echo "vol up"
+  echo "volume ", getVolume()
+  let curVolState = volState
+
+  # Check bounds
+  if cur_vol>= 100 and not volMute:
     return
 
-proc volumeChanged(scale: Range) =
-  let volume = int(scale.getValue())
-  setVolume(volume)
-]#
-proc updateIcon(img: Image) =
+  # Change current volume level
+  if cur_vol < 95:
+    cur_vol = cur_vol + 5
+  else:
+    cur_vol = 100
+
+  # Unmute on scroll up
+  if cur_vol <= 0 or volMute:
+    volMute = false
+
+  # Update state and frame
+  volState = getVolState()
+  if curVolState == volState:
+    return
+  p.updateFrame()
+
+proc volDown(icon: pointer) =
+  echo "vol down"
+  echo "volume ", getVolume()
+  let curVolState = volState
+
+  if cur_vol <= 0:
+    return
+
+  if cur_vol > 5:
+    cur_vol = cur_vol - 5
+  else:
+    cur_vol = 0
+
+  volState = getVolState()
+  if curVolState == volState:
+    return
+  p.updateFrame()
+
+proc newVolIcon(): Image =
   let iconSize = if p.iconSize > 24:
     p.iconSize - 4
   else:
@@ -44,17 +135,22 @@ proc updateIcon(img: Image) =
   let padding = (p.size - iconSize) / 2
   let iconPath = getConfigDir() / "icons" / "volume"
   var iconName: string
-  let vol = getVolume()
-  echo "volume ", vol
 
-  if vol <= 0:
+  echo "volume ", cur_vol
+  echo "volState = ", volState
+
+  case volState
+  of VolState.mute:
     iconName = "audio-volume-muted-symbolic.png"
-  elif vol > 0 and vol <= 50:
+  of VolState.low:
     iconName = "audio-volume-low-symbolic.png"
-  elif vol > 50 and vol <= 75:
+  of VolState.med:
     iconName = "audio-volume-medium-symbolic.png"
-  else: # vol > 75
+  else: # High
     iconName = "audio-volume-high-symbolic.png"
+
+  # Create image
+  let img = newImage(p.size, p.size)
 
   # Load Icon
   echo iconPath / iconName
@@ -64,48 +160,11 @@ proc updateIcon(img: Image) =
   let sizedIcon = icon.resize(iconSize, iconSize)
   img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-  return
-
-proc onMute(w: pointer) =
-  echo "mute"
-  if cur_vol == 100:
-    cur_vol = 0
-  else:
-    cur_vol = 100
-  echo "mute"
-  #setVolume(0)
-  echo "volume ", getVolume()
-  #cast[Image](w).updateIcon()
-
-
-  let buffer = drawFrame(addr p)
-
-  # Attach and Commit
-  p.surface.damage(0, 0, high(int32), high(int32))
-  p.surface.attach(buffer, 0, 0)
-  p.surface.commit()
-
-
-
-proc onVolClick(icon: pointer) =
-  echo "open volume"
-  #cast[Image](icon).updateIcon()
-
-proc volUp(icon: pointer) =
-  echo "vol up"
-  #cast[Image](icon).updateIcon()
-
-proc volDown(icon: pointer) =
-  echo "vol down"
-  #cast[Image](icon).updateIcon()
+  return img
 
 proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
-  let padding = (p.size - p.iconSize) / 2
-
-  # Create widget
-  let icon = newImage(p.size, p.size)
-
-  icon.updateIcon()
+  # Create icon
+  let icon = newVolIcon()
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
@@ -120,7 +179,6 @@ proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
 
   # Create widget
   var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
-  widget.data = addr widget
 
   return widget
 

@@ -8,10 +8,9 @@
 import wayland/native as wl
 import wayland/protocols/unstable/xdgoutputunstable/v1/client
 import wayland/protocols/unstable/wlrlayershell/v1/client
-import std/[os, posix, strutils, osproc]
+import std/[os, posix, strutils, osproc, times]
 import parsetoml
 import pixie
-import posix, std/times
 
 # Import system calls
 proc timerfd_create(clockid, flags: cint): cint {.importc, header: "<sys/timerfd.h>".}
@@ -71,19 +70,6 @@ type DisplayInfo = ref object
   height: int32
   scale: int32
 
-type Event = enum
-  enter
-  leave
-  motion
-  button
-
-type PointerData = object
-  event: Event
-  pos_x: float
-  pos_y: float
-  button: uint32
-  state: uint32
-
 type LevePanel = ref object
   display: ptr wl.Display
   output: ptr Output
@@ -101,7 +87,6 @@ type LevePanel = ref object
   color: string = "#070C1E"
   mouse_x: float
   mouse_y: float
-  #pointer: PointerData
 
 type Favorite = object
   name: string
@@ -122,22 +107,19 @@ type Widget = object
   endPos: array[2, int]
   img: Image
   callBacks: CallBacks
-  data: pointer
+  #data: pointer
 
 var widgets: seq[Widget] = @[]
 var display = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 
 
-proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer
+proc updateFrame(panel: LevePanel)
 include "leve-panel"/[config, favorites, clock, volume, panel]
 
 # ----------------------------------------------------------------------------------------
 #                                    Get Output
 # ----------------------------------------------------------------------------------------
-
-proc activateWidget(id: int) =
-  echo "activate "
 
 proc xdgOutputLogicalPos(
     data: pointer, xdgOutput: ptr ZxdgOutputV1, width: int32, height: int32
@@ -200,11 +182,6 @@ proc pointerHandleMotion(
   echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
 
 proc isWithin(w: Widget, x, y: int): bool =
-  #let xStart = widget.startPos[0]
-  #let yStart = widget.startPos[1]
-  #let xEnd = widget.endPos[0]
-  #let yEnd = widget.endPos[1]
-
   if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
     echo "Within bounds !"
     return true
@@ -228,7 +205,7 @@ proc pointerHandleButton(
         for cb in widget.callBacks:
           if cb.event == "click_l":
             echo "clicked"
-            cb.handler(widget.data)
+            cb.handler(nil)
             return # Found it, stop looking
 
   if state == 1 and button == 273:
@@ -237,7 +214,7 @@ proc pointerHandleButton(
         for cb in widget.callBacks:
           if cb.event == "click_r":
             echo "clicked"
-            cb.handler(widget.data)
+            cb.handler(nil)
             return # Found it, stop looking
 
   if state == 1 and button == 274:
@@ -246,7 +223,7 @@ proc pointerHandleButton(
         for cb in widget.callBacks:
           if cb.event == "click_m":
             echo "clicked"
-            cb.handler(widget.data)
+            cb.handler(nil)
             return # Found it, stop looking
 
 
@@ -284,7 +261,7 @@ proc pointerHandleScroll(
         for cb in widget.callBacks:
           if cb.event == "scroll_up":
             echo "scroll_up"
-            cb.handler(widget.data)
+            cb.handler(nil)
             return # Found it, stop looking
 
   if axis == 0 and value == 3840: # scroll down
@@ -293,7 +270,7 @@ proc pointerHandleScroll(
         for cb in widget.callBacks:
           if cb.event == "scroll_down":
             echo "scroll_down"
-            cb.handler(widget.data)
+            cb.handler(nil)
             return # Found it, stop looking
 
 # Setup Pointer Listener
@@ -484,13 +461,8 @@ proc main() =
       #echo "Tick: ", now().format("HH:mm:ss")
 
       if now().second == 0:
-        let buffer = drawFrame(addr p)
-        #p.surface.updateFrame()
+        p.updateFrame()
 
-        # Attach and Commit
-        p.surface.damage(0, 0, high(int32), high(int32))
-        p.surface.attach(buffer, 0, 0)
-        p.surface.commit()
 
   # Event Loop
   #while dispatch(p.display) != -1:

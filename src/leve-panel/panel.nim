@@ -139,6 +139,15 @@ proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
   discard buffer.add_listener(addr wl_buffer_listener, nil)
   return buffer
 
+proc updateFrame(panel: LevePanel) =
+  let buffer = drawFrame(addr panel)
+
+  # Attach and Commit
+  p.surface.damage(0, 0, high(int32), high(int32))
+  p.surface.attach(buffer, 0, 0)
+  p.surface.commit()
+
+
 # ----------------------------------------------------------------------------------------
 #                                    Configure Surface
 # ----------------------------------------------------------------------------------------
