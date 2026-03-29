@@ -16,9 +16,9 @@ proc getTime(): string =
 proc onClock(data: pointer) =
   echo "open clock"
 
-proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Create clock
-  let clock = newImage(p.size * 2, p.size)
+
+proc newClockImg(): Image =
+  let img = newImage(p.size * 2, p.size)
   let text = getTime()
 
   # Draw Text
@@ -29,21 +29,27 @@ proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   # Center text both horizontally and vertically
   let layout = font.typeset(
     text,
-    bounds = vec2(clock.width.float, clock.height.float),
+    bounds = vec2(img.width.float, img.height.float),
     hAlign = CenterAlign,  # Horizontal: Left, Center, Right
     vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
   )
 
   # Draw the text within the specified bounds, centered
-  clock.fillText(layout, translate(vec2(0, 0)))
+  img.fillText(layout, translate(vec2(0, 0)))
   #clock.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
+
+  return img
+
+proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
+  # Create clock Image
+  let clock = newClockImg()
 
   # Create callbacks
   let click: CallBack = ("click_l", onClock)
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: clock, callBacks: callBacks)
+  let widget: Widget = Widget(widgetType: WidgetType.clock, startPos: startPos, endPos: endPos, img: clock, callBacks: callBacks)
 
   return widget
 

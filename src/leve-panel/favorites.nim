@@ -36,12 +36,11 @@ proc trimWhiteSpace(i: Image): Image =
       width = maxX - minX + 1
       height = maxY - minY + 1
       cropped = image.subImage(minX, minY, width, height)
-    cropped.writeFile("output.png")
     return cropped
   else:
     return i
 
-proc exec(fav: ptr Favorite) =
+proc exec(fav: ptr PanelItem) =
   var cmd = fav.exec
 
   # Trim '%' and everything afterwards
@@ -65,11 +64,10 @@ proc exec(fav: ptr Favorite) =
 
 proc onFavClick(fav: pointer) =
   echo "on click"
-  echo cast[ptr Favorite](fav).name
-  exec(cast[ptr Favorite](fav))
+  exec(cast[ptr PanelItem](fav))
   #echo new.name
 
-proc newFavWidget(fav: Favorite, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   let padding = (p.size - p.iconSize) / 2
 
   # Create button
@@ -93,6 +91,21 @@ proc newFavWidget(fav: Favorite, startPos: array[2, int], endPos: array[2, int])
   else:
     echo "Error: Icon not found"
     icon = newImage(p.size, p.size)
+    # Draw Text
+    let text = "Icon not found"
+    let font = readFont("Roboto-Regular.ttf")
+    font.size = 15
+    font.paint.color = color(1, 1, 1) # White
+
+    # Center text both horizontally and vertically
+    let layout = font.typeset(
+      text,
+      bounds = vec2(icon.width.float, icon.height.float),
+      hAlign = CenterAlign,  # Horizontal: Left, Center, Right
+      vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
+    )
+    icon.fillText(layout, translate(vec2(0, 0)))
+
 
   # Remove whitespace 
   icon = icon.trimWhiteSpace()

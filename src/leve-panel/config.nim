@@ -5,6 +5,62 @@
 #
 # ========================================================================================
 
+const defaultConfig =
+  """
+#          Leve Panel Default Config
+#
+
+# Panel Settings
+[Panel]
+pos = "top"
+color = "#070C1E"
+size = 46
+icon_size = 32
+scroll_up = "swaymsg workspace prev"
+scroll_down = "swaymsg workspace next"
+
+# Favorite Apps
+[[Left]]
+widget = "favorite"
+icon = "menu.png"
+exec = "griddle"
+terminal = false
+
+[[Left]]
+widget = "favorite"
+icon = "folder-blue.png"
+exec = "pcmanfm"
+terminal = false
+
+[[Left]]
+widget = "favorite"
+icon = "terminal.png"
+exec = "foot"
+terminal = false
+
+[[Left]]
+widget = "favorite"
+icon = "google-chrome.png"
+exec = "google-chrome"
+terminal = false
+
+# Widgets
+[[Right]]
+widget = "power"
+exec = "power"
+terminal = false
+
+[[Right]]
+widget = "clock"
+exec = "clock"
+terminal = false
+
+[[Right]]
+widget = "volume"
+exec = "volume"
+terminal = false
+"""
+
 proc getConfigDir(): string =
   let home = getEnv("XDG_CONFIG_HOME")
   if not home.isEmptyOrWhitespace():
@@ -33,7 +89,7 @@ proc getIconPath(s: string): string =
     echo "Error: Invalid icon path \n"
     return ""
 
-proc parseConfig(configFile: string): seq[Favorite] =
+proc parseConfig(configFile: string) =
   echo "Reading config..."
 
   let config =
@@ -43,6 +99,7 @@ proc parseConfig(configFile: string): seq[Favorite] =
       echo "Error: Failed to parse configuration file"
       return
 
+  # Panel
   if config.hasKey("Panel"):
     let panel = config["Panel"]
     if panel.hasKey("pos"):
@@ -56,26 +113,43 @@ proc parseConfig(configFile: string): seq[Favorite] =
     if panel.hasKey("size"):
       p.size = int32(panel["size"].getInt())
     if panel.hasKey("icon_size"):
-      p.icon_size = panel["icon_size"].getInt()
+      p.iconSize = panel["icon_size"].getInt()
     # Keep icon size smaller than panel size
-    if p.icon_size > p.size:
-      p.icon_size = p.size
+    if p.iconSize > p.size:
+      p.iconSize = p.size
+    if panel.hasKey("scroll_up"):
+      p.scrollUpCmd = panel["scroll_up"].getStr()
+    if panel.hasKey("scroll_down"):
+      p.scrollDownCmd = panel["scroll_down"].getStr()
 
-  let apps = config["app"].getElems()
+  # Left Side
+  let leftElems = config["Left"].getElems()
 
-  for app in apps:
-    echo app
-    var fav: Favorite
-    if app.hasKey("name"):
-      fav.name = app["name"].getStr()
-    if app.hasKey("icon"):
-      fav.icon = getIconPath(app["icon"].getStr())
-    else:
-      echo "Error: Missing icon path \n"
-    if app.hasKey("exec"):
-      fav.exec = app["exec"].getStr()
-    if app.hasKey("terminal"):
-      fav.terminal = app["terminal"].getBool()
+  for elem in leftElems:
+    var item: PanelItem
+    if elem.hasKey("widget"):
+      item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+    if elem.hasKey("icon"):
+      item.icon = getIconPath(elem["icon"].getStr())
+    if elem.hasKey("exec"):
+      item.exec = elem["exec"].getStr()
+    if elem.hasKey("terminal"):
+      item.terminal = elem["terminal"].getBool()
 
-    result.add(fav)
+    leftItems.add(item)
 
+  # Right Side
+  let rightElems = config["Right"].getElems()
+
+  for elem in rightElems:
+    var item: PanelItem
+    if elem.hasKey("widget"):
+      item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+    if elem.hasKey("icon"):
+      item.icon = getIconPath(elem["icon"].getStr())
+    if elem.hasKey("exec"):
+      item.exec = elem["exec"].getStr()
+    if elem.hasKey("terminal"):
+      item.terminal = elem["terminal"].getBool()
+
+    rightItems.add(item)

@@ -61,73 +61,7 @@ proc getVolState(): VolState =
 
 volState = getVolState()
 
-proc onMute(w: pointer) =
-  echo "on mute"
-  echo "volume ", getVolume()
-
-  if volMute:
-    volMute = false
-  else:
-    volMute = true
-    #volState = VolState.mute
-
-  #setVolume(0)
-
-  # Update state and frame
-  volState = getVolState()
-  p.updateFrame()
-
-
-
-proc onVolClick(icon: pointer) =
-  echo "open volume"
-  echo "volume ", getVolume()
-  #cast[Image](icon).updateIcon()
-
-proc volUp(icon: pointer) =
-  echo "vol up"
-  echo "volume ", getVolume()
-  let curVolState = volState
-
-  # Check bounds
-  if cur_vol>= 100 and not volMute:
-    return
-
-  # Change current volume level
-  if cur_vol < 95:
-    cur_vol = cur_vol + 5
-  else:
-    cur_vol = 100
-
-  # Unmute on scroll up
-  if cur_vol <= 0 or volMute:
-    volMute = false
-
-  # Update state and frame
-  volState = getVolState()
-  if curVolState == volState:
-    return
-  p.updateFrame()
-
-proc volDown(icon: pointer) =
-  echo "vol down"
-  echo "volume ", getVolume()
-  let curVolState = volState
-
-  if cur_vol <= 0:
-    return
-
-  if cur_vol > 5:
-    cur_vol = cur_vol - 5
-  else:
-    cur_vol = 0
-
-  volState = getVolState()
-  if curVolState == volState:
-    return
-  p.updateFrame()
-
-proc newVolIcon(): Image =
+proc newVolImg(): Image =
   let iconSize = if p.iconSize > 24:
     p.iconSize - 4
   else:
@@ -162,15 +96,85 @@ proc newVolIcon(): Image =
 
   return img
 
+proc onVolClick(data: pointer) =
+  echo "open volume"
+  echo "volume ", getVolume()
+
+proc onMute(data: pointer) =
+  echo "on mute"
+  echo "volume ", getVolume()
+
+  if volMute:
+    volMute = false
+  else:
+    volMute = true
+    #volState = VolState.mute
+
+  # Update state and Image
+  volState = getVolState()
+
+  cast[ptr Widget](data).img = newVolImg()
+  updateWidget(cast[ptr Widget](data))
+  p.surface.wl_surface_commit()
+
+proc volUp(data: pointer) =
+  echo "vol up"
+  echo "volume ", getVolume()
+  let curVolState = volState
+
+  # Check bounds
+  if cur_vol>= 100 and not volMute:
+    return
+
+  # Change current volume level
+  if cur_vol < 95:
+    cur_vol = cur_vol + 5
+  else:
+    cur_vol = 100
+
+  # Unmute on scroll up
+  if cur_vol <= 0 or volMute:
+    volMute = false
+
+  # Update state and Image
+  volState = getVolState()
+  if curVolState == volState:
+    return
+
+  cast[ptr Widget](data).img = newVolImg()
+  updateWidget(cast[ptr Widget](data))
+  p.surface.wl_surface_commit()
+
+proc volDown(data: pointer) =
+  echo "vol down"
+  echo "volume ", getVolume()
+  let curVolState = volState
+
+  if cur_vol <= 0:
+    return
+
+  if cur_vol > 5:
+    cur_vol = cur_vol - 5
+  else:
+    cur_vol = 0
+
+  volState = getVolState()
+  if curVolState == volState:
+    return
+
+  cast[ptr Widget](data).img = newVolImg()
+  updateWidget(cast[ptr Widget](data))
+  p.surface.wl_surface_commit()
+
 proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Create icon
-  let icon = newVolIcon()
+  # Create volume Image
+  let icon = newVolImg()
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
-  let click: CallBack = ("click_l", onVolClick)
+  let click: CallBack = ("click_m", onVolClick)
   callBacks.add(click)
-  let mute: CallBack = ("click_m", onMute)
+  let mute: CallBack = ("click_l", onMute)
   callBacks.add(mute)
   let scrollUp: CallBack = ("scroll_up", volUp)
   callBacks.add(scrollUp)
@@ -178,23 +182,9 @@ proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   callBacks.add(scrollDown)
 
   # Create widget
-  var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  var widget: Widget = Widget(widgetType: WidgetType.volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
 
   return widget
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

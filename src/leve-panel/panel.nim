@@ -5,11 +5,12 @@
 #
 # ========================================================================================
 
-proc wl_buffer_release(data: pointer, wl_buffer: ptr wl.Buffer) =
+proc wl_buffer_release(data: pointer, buffer: ptr wlBuffer) {.cdecl.} =
   # Sent by the compositor when it's no longer using this buffer
-  destroy(wl_buffer)
+  #destroy(wl_buffer)
+  echo "fix me"
 
-let wl_buffer_listener = wl.BufferListener(release: wl_buffer_release)
+let wl_buffer_listener = wlBufferListener(release: wl_buffer_release)
 
 # Shared memory support code
 proc randname(buf: var openArray[char]) =
@@ -59,9 +60,9 @@ proc allocate_shm_file(size: csize_t): cint =
 #                                    Draw Panel
 # ----------------------------------------------------------------------------------------
 
-proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
+proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
   echo "Drawing frame"
-  let width = display.width
+  let width = displayInfo.width
   let height = panel.size
   let stride = width * 4
   let size = stride * height
@@ -71,21 +72,22 @@ proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
   if fd == -1:
     return nil
 
-  let pixelData = cast[ptr UncheckedArray[uint32]](mmap(
+  p.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
     nil, size, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
   ))
-  if cast[int](pixelData) == cast[int](MAP_FAILED):
+  if cast[int](p.pixelData) == cast[int](MAP_FAILED):
     discard close(fd)
     return nil
 
-  let pool = panel.memBuffer.createPool(fd, cint(size))
-  let buffer = pool.createBuffer(
+  let memPool = panel.shMem.wl_shm_create_pool(int32(fd), size)
+  panel.buffer = memPool.wl_shm_pool_create_buffer(
+  #let buffer = get pool.createBuffer(
     #0, cint(width), cint(height), cint(stride), cast[uint32](format_xrgb8888)
-    0,
-    cint(width),
-    cint(height),
-    cint(stride),
-    cast[uint32](format_xbgr8888),
+    int32(0),
+    int32(width),
+    int32(height),
+    int32(stride),
+    uint32(ShmFormat.XBGR8888),
   )
 
   # Create panel bar area
@@ -100,53 +102,88 @@ proc drawFrame(panel: ptr LevePanel): ptr wl.Buffer =
 
   # Add favorite buttons
   var pos: float32 = 0
-  for fav in favorites:
-    # newWidget = (favorite, startPos, endPos)
-    let widget = newFavWidget(fav, [int(pos), 0], [int(pos) + p.size, p.size])
+  for item in leftItems:
+    var widget: Widget
+    case item.widget
+    of WidgetType.favorite:
+      # newWidget = (favorite, startPos, endPos)
+      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.clock:
+      widget = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+    of WidgetType.volume:
+      widget = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.power:
+      widget = newPowerWidget([int(pos), 0], [int(pos) + p.size, p.size])
+
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
+    if item.widget == WidgetType.clock:
+      pos = pos + float32(p.size)
     pos = pos + float32(p.size)
 
   # Placeholder for switcher
   pos = (width / 2) - float32(p.size)
-  let clock = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
-  widgets.add(clock)
-  ctx.drawImage(clock.img, pos, 0)
+  #let clock = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+  #widgets.add(clock)
+  #ctx.drawImage(clock.img, pos, 0)
 
-  # Add system tray items
+  # Add system tray widgets
   pos = float32(width - p.size)
-  pos = pos - float32(p.size)
+  for item in rightItems:
+    var widget: Widget
+    case item.widget
+    of WidgetType.favorite:
+      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.clock:
+      pos = pos - float32(p.size)
+      widget = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+    of WidgetType.volume:
+      widget = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.power:
+      widget = newPowerWidget([int(pos), 0], [int(pos) + p.size, p.size])
 
-  let clock_1 = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
-  widgets.add(clock_1)
-  ctx.drawImage(clock_1.img, pos, 0)
-  pos = pos - float32(p.size)
-
-  let vol = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
-  widgets.add(vol)
-  ctx.drawImage(vol.img, pos, 0)
-  pos = pos - float32(p.size)
+    widgets.add(widget)
+    ctx.drawImage(widget.img, pos, 0)
+    pos = pos - float32(p.size)
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
-  copyMem(pixelData, panelBG.data[0].addr, size)
+  copyMem(p.pixelData, panelBG.data[0].addr, size)
 
   # Cleanup
-  destroy(pool)
+  #destroy(memPool)
   discard close(fd)
-  discard munmap(cast[pointer](pixelData), size)
+  #discard munmap(cast[pointer](p.pixelData), size)
 
-  discard buffer.add_listener(addr wl_buffer_listener, nil)
-  return buffer
+  discard panel.buffer.wl_buffer_add_listener(addr wl_buffer_listener, nil)
+  return cast[ptr wl_buffer](panel.buffer)
 
-proc updateFrame(panel: LevePanel) =
-  let buffer = drawFrame(addr panel)
+# ----------------------------------------------------------------------------------------
+#                                    Update Widgets
+# ----------------------------------------------------------------------------------------
 
-  # Attach and Commit
-  p.surface.damage(0, 0, high(int32), high(int32))
-  p.surface.attach(buffer, 0, 0)
-  p.surface.commit()
+proc updateWidget(w: ptr Widget) =
+  let width = int32(w.endPos[0] - w.startPos[0])
+  let height = p.size
 
+  # Draw damaged area
+  let newImgData = newImage(width, height)
+  newImgData.fill(parseHtmlColor(p.color))
+  let ctx = newImgData.newContext()
+  ctx.drawImage(w.img, 0, 0)
+
+  # Copy new area to image data
+  var dataPos = w.startPos[0]
+  var newDataPos = 0
+
+  for i in 0 ..< height:
+    copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
+    dataPos = dataPos + displayInfo.width
+    newDataPos = newDataPos + width
+
+  # Attach and Damage
+  p.surface.wl_surface_attach(p.buffer, 0, 0)
+  p.surface.wl_surface_damage(int32(w.startPos[0]), 0, width, height)
 
 # ----------------------------------------------------------------------------------------
 #                                    Configure Surface
@@ -154,16 +191,21 @@ proc updateFrame(panel: LevePanel) =
 
 proc configureSurface(
     data: pointer,
-    surface: ptr ZwlrLayerSurfaceV1,
+    surface: ptr zwlr_layer_surface_v1,
     serial: uint32,
     width: uint32,
     height: uint32,
-) =
+) {.cdecl.} =
+
+  if p.buffer != nil:
+    #destroy(p.buffer)
+    return
+
   let panel = cast[ptr LevePanel](data)
-  surface.ackConfigure(serial)
+  cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
 
   let buffer = drawFrame(panel)
 
   # Attach and Commit
-  panel.surface.attach(buffer, 0, 0)
-  panel.surface.commit()
+  panel.surface.wl_surface_attach(buffer, int32(0), int32(0))
+  panel.surface.wl_surface_commit()
