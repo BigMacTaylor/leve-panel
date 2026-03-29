@@ -106,14 +106,14 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     var widget: Widget
     case item.widget
     of WidgetType.favorite:
-      # newWidget = (favorite, startPos, endPos)
+      # newWidget = (item, startPos, endPos)
       widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.clock:
-      widget = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
     of WidgetType.volume:
-      widget = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
-      widget = newPowerWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
@@ -136,11 +136,11 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.clock:
       pos = pos - float32(p.size)
-      widget = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
     of WidgetType.volume:
-      widget = newVolWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
-      widget = newPowerWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)

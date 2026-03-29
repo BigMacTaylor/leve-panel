@@ -6,20 +6,18 @@
 # ========================================================================================
 
 import
-  pkg/nayland/types/display,
   pkg/nayland/types/protocols/core/[compositor, registry, shm, shm_pool, surface, buffer, output],
   pkg/nayland/bindings/protocols/[core, xdg_shell, xdg_decoration_unstable_v1],
   pkg/nayland/types/protocols/xdg_shell/[wm_base, xdg_surface, xdg_toplevel],
   pkg/nayland/types/protocols/xdg_decoration/prelude,
   pkg/nayland/bindings/protocols/[xdg_output_unstable_v1],
   pkg/nayland/bindings/protocols/[wlr_layer_shell_unstable_v1],
-  pkg/nayland/bindings/protocols/[core, wlr_layer_shell_unstable_v1],
   pkg/nayland/types/protocols/wlr/layer_shell/prelude,
   pkg/nayland/bindings/[libwayland]
 
 import std/[os, posix, strutils, osproc, times]
 import parsetoml
-import pixie, memfiles
+import pixie
 
 proc prepare_read*(display: ptr wl_display): cint {.
     importc: "wl_display_prepare_read", dynlib: "libwayland-client.so".}

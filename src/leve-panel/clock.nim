@@ -14,8 +14,8 @@ proc getTime(): string =
   return time & "\n" & date
 
 proc onClock(data: pointer) =
-  echo "open clock"
-
+  echo "open clock widget"
+  discard execShellCmd(cast[ptr PanelItem](data).exec)
 
 proc newClockImg(): Image =
   let img = newImage(p.size * 2, p.size)
@@ -40,12 +40,12 @@ proc newClockImg(): Image =
 
   return img
 
-proc newClockWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newClockWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create clock Image
   let clock = newClockImg()
 
   # Create callbacks
-  let click: CallBack = ("click_l", onClock)
+  let click: CallBack = ("click_l", proc(data: pointer) = onClock(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

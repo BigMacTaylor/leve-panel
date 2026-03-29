@@ -5,16 +5,9 @@
 #
 # ========================================================================================
 
-
-const powerCmd = "power off"
-
-
-
 proc onPowerBtn(data: pointer) =
-  echo "on click ", powerCmd
-  #echo cast[ptr Favorite](fav).name
-  #exec(cast[ptr Favorite](fav))
-  #echo new.name
+  echo "power off menu "
+  discard execShellCmd(cast[ptr PanelItem](data).exec)
 
 proc newPowerIcon(): Image =
   let iconSize = if p.iconSize > 24:
@@ -30,7 +23,12 @@ proc newPowerIcon(): Image =
 
   # Load Icon
   echo iconPath / iconName
-  let icon = readImage(iconPath / iconName)
+  let icon = try:
+    readImage(iconPath / iconName)
+  except:
+    echo "Error: Icon not found"
+    notFoundIcon()
+
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
@@ -41,12 +39,12 @@ proc newPowerIcon(): Image =
 
 
 
-proc newPowerWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newPowerWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create icon
   let icon = newPowerIcon()
 
   # Create callbacks
-  let click: CallBack = ("click_l", onPowerBtn)
+  let click: CallBack = ("click_l", proc(data: pointer) = onPowerBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

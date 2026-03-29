@@ -5,6 +5,24 @@
 #
 # ========================================================================================
 
+proc notFoundIcon(): Image =
+  let icon = newImage(p.size, p.size)
+  # Draw Text
+  let text = "Icon not found"
+  let font = readFont("Roboto-Regular.ttf")
+  font.size = 15
+  font.paint.color = color(1, 1, 1) # White
+
+  # Center text both horizontally and vertically
+  let layout = font.typeset(
+    text,
+    bounds = vec2(icon.width.float, icon.height.float),
+    hAlign = CenterAlign,  # Horizontal: Left, Center, Right
+    vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
+  )
+  icon.fillText(layout, translate(vec2(0, 0)))
+  return icon
+
 proc trimWhiteSpace(i: Image): Image =
   let image = i
 
@@ -77,12 +95,19 @@ proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]
 
   # Load Icon
   if fav.icon.endsWith(".png"):
-    icon = readImage(fav.icon)
+    icon = try:
+      readImage(fav.icon)
+    except:
+      echo "Error: Icon not found"
+      notFoundIcon()
   elif fav.icon.endsWith(".svg"):
     echo "svg block"
-    icon = readImage(fav.icon)
+    icon = try:
+      readImage(fav.icon)
+    except:
+      echo "Error: Icon not found"
+      notFoundIcon()
 
-    #button.fill(rgba(255, 255, 255, 255))
 
     button.draw(
       icon,
@@ -90,21 +115,7 @@ proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]
     )
   else:
     echo "Error: Icon not found"
-    icon = newImage(p.size, p.size)
-    # Draw Text
-    let text = "Icon not found"
-    let font = readFont("Roboto-Regular.ttf")
-    font.size = 15
-    font.paint.color = color(1, 1, 1) # White
-
-    # Center text both horizontally and vertically
-    let layout = font.typeset(
-      text,
-      bounds = vec2(icon.width.float, icon.height.float),
-      hAlign = CenterAlign,  # Horizontal: Left, Center, Right
-      vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
-    )
-    icon.fillText(layout, translate(vec2(0, 0)))
+    icon = notFoundIcon()
 
 
   # Remove whitespace 

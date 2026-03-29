@@ -47,17 +47,17 @@ terminal = false
 # Widgets
 [[Right]]
 widget = "power"
-exec = "power"
+exec = "wlogout"
 terminal = false
 
 [[Right]]
 widget = "clock"
-exec = "clock"
+exec = "calender app"
 terminal = false
 
 [[Right]]
 widget = "volume"
-exec = "volume"
+exec = "pavucontrol"
 terminal = false
 """
 

@@ -5,7 +5,6 @@
 #
 # ========================================================================================
 
-var vol_image: Image
 var cur_vol = 100
 var volMute = false
 
@@ -88,7 +87,11 @@ proc newVolImg(): Image =
 
   # Load Icon
   echo iconPath / iconName
-  let icon = readImage(iconPath / iconName)
+  let icon = try:
+    readImage(iconPath / iconName)
+  except:
+    echo "Error: Icon not found"
+    notFoundIcon()
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
@@ -97,8 +100,9 @@ proc newVolImg(): Image =
   return img
 
 proc onVolClick(data: pointer) =
-  echo "open volume"
+  echo "open volume control"
   echo "volume ", getVolume()
+  discard execShellCmd(cast[ptr PanelItem](data).exec)
 
 proc onMute(data: pointer) =
   echo "on mute"
@@ -123,7 +127,7 @@ proc volUp(data: pointer) =
   let curVolState = volState
 
   # Check bounds
-  if cur_vol>= 100 and not volMute:
+  if cur_vol >= 100 and not volMute:
     return
 
   # Change current volume level
@@ -166,13 +170,13 @@ proc volDown(data: pointer) =
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
-proc newVolWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newVolWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create volume Image
   let icon = newVolImg()
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
-  let click: CallBack = ("click_m", onVolClick)
+  let click: CallBack = ("click_m", proc(data: pointer) = onVolClick(addr i))
   callBacks.add(click)
   let mute: CallBack = ("click_l", onMute)
   callBacks.add(mute)
