@@ -413,6 +413,7 @@ proc main() =
   let tfd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
   spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
+  #spec.it_interval.tv_nsec = 500_000_000 # Repeat every 0.5s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(tfd, 0, addr spec, nil)
 
@@ -456,6 +457,17 @@ proc main() =
             widget.img = newClockImg()
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
+      # Update volume state and Image
+      cur_vol = getVolume()
+      volMute = getMute()
+      if volState == getVolState():
+        continue
+      volState = getVolState()
+      for widget in widgets:
+        if widget.widgetType == WidgetType.volume:
+          widget.img = newVolImg()
+          updateWidget(addr widget)
+      p.surface.wl_surface_commit()
 
 
   # Cleanup

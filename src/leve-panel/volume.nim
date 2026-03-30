@@ -5,17 +5,15 @@
 #
 # ========================================================================================
 
-var cur_vol = 100
-var volMute = false
-
 type VolState = enum
   mute
   low
   med
   high
 
+var volMute = false
+var cur_vol = 100
 var volState = VolState.high
-
 
 #[
 proc setVolume(volume: int) =
@@ -32,6 +30,20 @@ proc volumeChanged(scale: Range) =
   setVolume(volume)
 ]#
 
+proc getMute(): bool =
+  let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
+  var (output, status) = execCmdEx(cmd, options={})
+
+  if status != 0:
+    echo "Error getting volume level"
+    return
+
+  # Clean output string
+  var s = output.strip()
+  let isMuted = s.endsWith("[MUTED]")
+  echo output
+  echo isMuted
+  return isMuted
 
 proc getVolume(): int =
   let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
@@ -45,8 +57,7 @@ proc getVolume(): int =
   let s = output.splitWhitespace()[1] # Get "1.0"
   let f = parseFloat(s)
 
-  #return toInt(f * 100)
-  return cur_vol
+  return toInt(f * 100)
 
 proc getVolState(): VolState =
   if cur_vol <= 0 or volMute:
@@ -58,6 +69,8 @@ proc getVolState(): VolState =
   else: # cur_vol > 75
     return VolState.high
 
+volMute = getMute()
+cur_vol = getVolume()
 volState = getVolState()
 
 proc newVolImg(): Image =
@@ -68,9 +81,6 @@ proc newVolImg(): Image =
   let padding = (p.size - iconSize) / 2
   let iconPath = getConfigDir() / "icons" / "volume"
   var iconName: string
-
-  echo "volume ", cur_vol
-  echo "volState = ", volState
 
   case volState
   of VolState.mute:
@@ -102,17 +112,21 @@ proc newVolImg(): Image =
 proc onVolClick(data: pointer) =
   echo "open volume control"
   echo "volume ", getVolume()
-  discard execShellCmd(cast[ptr PanelItem](data).exec)
+
+  let cmd = cast[ptr PanelItem](data).exec
+  discard execShellCmd(cmd & " &")
 
 proc onMute(data: pointer) =
   echo "on mute"
   echo "volume ", getVolume()
+  let cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ "
 
   if volMute:
     volMute = false
+    discard execShellCmd(cmd & "0")
   else:
     volMute = true
-    #volState = VolState.mute
+    discard execShellCmd(cmd & "1")
 
   # Update state and Image
   volState = getVolState()
@@ -130,15 +144,23 @@ proc volUp(data: pointer) =
   if cur_vol >= 100 and not volMute:
     return
 
+  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ "
+
   # Change current volume level
   if cur_vol < 95:
     cur_vol = cur_vol + 5
+    discard execShellCmd(cmd & $cur_vol & "%")
   else:
     cur_vol = 100
+    discard execShellCmd(cmd & "100%")
 
   # Unmute on scroll up
-  if cur_vol <= 0 or volMute:
+  #if cur_vol <= 0 or volMute:
+  if volMute:
     volMute = false
+    let muteCmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ "
+    discard execShellCmd(muteCmd & "0")
+  echo "mute state ", volMute
 
   # Update state and Image
   volState = getVolState()
@@ -154,14 +176,21 @@ proc volDown(data: pointer) =
   echo "volume ", getVolume()
   let curVolState = volState
 
+  # Check bounds
   if cur_vol <= 0:
     return
 
+  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ "
+
+  # Change current volume level
   if cur_vol > 5:
     cur_vol = cur_vol - 5
+    discard execShellCmd(cmd & $cur_vol & "%")
   else:
     cur_vol = 0
+    discard execShellCmd(cmd & "0%")
 
+  # Update state and Image
   volState = getVolState()
   if curVolState == volState:
     return
