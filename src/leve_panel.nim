@@ -16,6 +16,7 @@ import
   pkg/nayland/bindings/[libwayland]
 
 import std/[os, posix, strutils, osproc, times]
+import asynctools
 import parsetoml
 import pixie
 
@@ -308,6 +309,9 @@ proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32
 #                                    Main
 # ----------------------------------------------------------------------------------------
 
+let process = startProcess("pactl", args = ["subscribe"], options = {asyncTools.ProcessOption.poUsePath, poStdErrToStdOut})
+let outputPipe = process.outputHandle()
+
 proc main() =
   # Parse config and get favorite apps
   let config = initFile("config.toml", defaultConfig)
@@ -339,13 +343,13 @@ proc main() =
   # Check if required interfaces were bound
   if p.compositor == nil:
     echo "Error: Wayland compositor not available"
-    #destroy(p.registry)
+    wl_registry_destroy(p.registry)
     #destroy(p.display)
     return
 
   if p.output == nil:
     echo "Error: Failed to get output"
-    #destroy(p.registry)
+    wl_registry_destroy(p.registry)
     #destroy(p.display)
     return
 
@@ -356,7 +360,7 @@ proc main() =
   p.surface = p.compositor.wl_compositor_create_surface()
   if p.surface == nil:
     echo "Error: Failed to create wayland surface"
-    #destroy(p.registry)
+    wl_registry_destroy(p.registry)
     #destroy(p.display)
     return
 
@@ -370,8 +374,8 @@ proc main() =
   ))
   if p.layerSurface == nil:
     echo "Error: Failed to create layer surface"
-    #destroy(p.surface)
-    #destroy(p.registry)
+    wl_surface_destroy(p.surface)
+    wl_registry_destroy(p.registry)
     #destroy(p.display)
     return
 
@@ -457,11 +461,33 @@ proc main() =
             widget.img = newClockImg()
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
-      # Update volume state and Image
+
+    # Check if data is available
+    var data = newString(64)
+    if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:
+      if data[0] == '\0':
+        echo "no data"
+        continue
+
+      # Update volume state
       cur_vol = getVolume()
       volMute = getMute()
+
+      # TODO there has to be a better way to do this
+      # Read all content to "clear" it from the buffer
+      while true:
+        var data = newString(64)
+        if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:
+          echo data
+          if data[0] == '\0':
+            echo "no data"
+            break
+
+      # Check widget state
       if volState == getVolState():
         continue
+
+      # Update widget
       volState = getVolState()
       for widget in widgets:
         if widget.widgetType == WidgetType.volume:
@@ -469,16 +495,19 @@ proc main() =
           updateWidget(addr widget)
       p.surface.wl_surface_commit()
 
-
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)
 
   p.seat.wl_seat_release()
 
-  # Event Loop
-  #while dispatch(p.display) != -1:
-  # Wait for events (resize, close, etc.)
-  #discard
+proc cleanup() {.noconv.} =
+  echo "Program interrupted by user"
+  echo "Performing cleanup..."
+  process.kill()
+
+  quit()
 
 when isMainModule:
+  setControlCHook(cleanup)
   main()
+
