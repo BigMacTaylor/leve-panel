@@ -22,7 +22,7 @@ proc newClockImg(): Image =
   let text = getTime()
 
   # Draw Text
-  let font = readFont("Roboto-Regular.ttf")
+  let font = readFont(getConfigDir() / "Roboto-Regular.ttf")
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 
