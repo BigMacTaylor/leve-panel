@@ -41,8 +41,6 @@ proc getMute(): bool =
   # Clean output string
   var s = output.strip()
   let isMuted = s.endsWith("[MUTED]")
-  echo output
-  echo isMuted
   return isMuted
 
 proc getVolume(): int =

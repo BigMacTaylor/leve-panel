@@ -76,6 +76,7 @@ type WidgetType = enum
   clock
   volume
   power
+  desktop
 
 type PanelItem = object
   widget: WidgetType
@@ -104,7 +105,7 @@ var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 
 proc updateWidget(w: ptr Widget)
-include "leve-panel"/[config, favorites, clock, volume, power, panel]
+include "leve-panel"/[config, favorites, clock, volume, power, desktop_indicator, panel]
 
 # ----------------------------------------------------------------------------------------
 #                                    Get Output
@@ -430,7 +431,11 @@ proc main() =
 
   echo "Nim Wayland Clock Running..."
 
+  var current_desktop = getCurrentSwayWorkspace()
+
   while true:
+    echo "main loop"
+    sleep(100)
     # 1. Prepare Wayland
     while prepareRead(p.display) != 0:
       discard dispatchPending(p.display)
@@ -452,9 +457,9 @@ proc main() =
       var expirations: uint64
       discard read(tfd, addr expirations, sizeof(expirations))
 
-      # Redraw logic
       echo "Tick: ", now().format("HH:mm:ss")
 
+      # Update clock widget
       if now().second == 0:
         for widget in widgets:
           if widget.widgetType == WidgetType.clock:
@@ -462,11 +467,33 @@ proc main() =
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
 
+
+    # Desktop indicator widget
+    if not (current_desktop == getCurrentSwayWorkspace()):
+      current_desktop = getCurrentSwayWorkspace()
+      for widget in widgets:
+        if widget.widgetType == WidgetType.desktop:
+          widget.img = newDesktopImg()
+          updateWidget(addr widget)
+      p.surface.commit()
+
+#[
+    # Desktop indicator
+    for widget in widgets:
+      if widget.widgetType == WidgetType.desktop:
+        widget.img = newDesktopImg()
+        updateWidget(addr widget)
+    p.surface.commit()
+]#
+
+
+    # Volume widget
+    # --------------
     # Check if data is available
     var data = newString(64)
     if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:
       if data[0] == '\0':
-        echo "no data"
+        echo "outputPipe: no data"
         continue
 
       # Update volume state

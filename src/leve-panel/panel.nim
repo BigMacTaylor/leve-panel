@@ -7,8 +7,8 @@
 
 proc wl_buffer_release(data: pointer, buffer: ptr wlBuffer) {.cdecl.} =
   # Sent by the compositor when it's no longer using this buffer
+  echo "buffer release"
   #destroy(wl_buffer)
-  echo "fix me"
 
 let wl_buffer_listener = wlBufferListener(release: wl_buffer_release)
 
@@ -114,6 +114,9 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.desktop:
+      widget = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
+
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
@@ -123,9 +126,9 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
 
   # Placeholder for switcher
   pos = (width / 2) - float32(p.size)
-  #let clock = newClockWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
-  #widgets.add(clock)
-  #ctx.drawImage(clock.img, pos, 0)
+  let desktop = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
+  widgets.add(desktop)
+  ctx.drawImage(desktop.img, pos, 0)
 
   # Add system tray widgets
   pos = float32(width - p.size)
@@ -141,6 +144,8 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.desktop:
+      widget = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
@@ -151,7 +156,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
   copyMem(p.pixelData, panelBG.data[0].addr, size)
 
   # Cleanup
-  #destroy(memPool)
+  wl_shm_pool_destroy(memPool)
   discard close(fd)
   #discard munmap(cast[pointer](p.pixelData), size)
 
