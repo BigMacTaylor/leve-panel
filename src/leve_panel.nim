@@ -475,7 +475,7 @@ proc main() =
         if widget.widgetType == WidgetType.desktop:
           widget.img = newDesktopImg()
           updateWidget(addr widget)
-      p.surface.commit()
+      p.surface.wl_surface_commit()
 
 #[
     # Desktop indicator

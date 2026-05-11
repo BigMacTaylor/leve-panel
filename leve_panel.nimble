@@ -16,7 +16,7 @@ requires "parsetoml"
 requires "pixie"
 
 # Foreign Dependencies
-foreignDeps  = @["libwayland-dev", "pulseaudio-utils"]
+foreignDeps  = @["pkg-config", "libwayland-dev", "pulseaudio-utils"]
 
 task release, "Build release":
   exec "nim c -d:release -d:strip --opt:size --threads:off -o:bin/leve_panel src/leve_panel.nim"
