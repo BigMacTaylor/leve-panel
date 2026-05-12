@@ -7,7 +7,8 @@
 
 proc onPowerBtn(data: pointer) =
   echo "power off menu "
-  discard execShellCmd(cast[ptr PanelItem](data).exec)
+  let cmd = cast[ptr PanelItem](data).exec
+  discard execShellCmd(cmd & " &")
 
 proc newPowerIcon(): Image =
   let iconSize = if p.iconSize > 24:

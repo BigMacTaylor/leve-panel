@@ -30,7 +30,8 @@ proc getTime(): string =
 
 proc onClock(data: pointer) =
   echo "open clock widget"
-  discard execShellCmd(cast[ptr PanelItem](data).exec)
+  let cmd = cast[ptr PanelItem](data).exec
+  discard execShellCmd(cmd & " &")
 
 proc newClockImg(): Image =
   let img = newImage(p.size * 2, p.size)

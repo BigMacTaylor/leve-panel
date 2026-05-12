@@ -52,7 +52,7 @@ terminal = false
 
 [[Right]]
 widget = "clock"
-exec = "calender app"
+exec = "gsimplecal"
 terminal = false
 
 [[Right]]
