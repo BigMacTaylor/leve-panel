@@ -9,7 +9,7 @@ proc notFoundIcon(): Image =
   let icon = newImage(p.size, p.size)
   # Draw Text
   let text = "Icon not found"
-  let font = readFont("Roboto-Regular.ttf")
+  let font = readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 

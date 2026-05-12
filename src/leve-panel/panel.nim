@@ -117,7 +117,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.desktop:
       widget = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
 
-
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     if item.widget == WidgetType.clock:

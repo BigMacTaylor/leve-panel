@@ -434,7 +434,7 @@ proc main() =
   var current_desktop = getCurrentSwayWorkspace()
 
   while true:
-    echo "main loop"
+    echo "\n", "main loop"
     sleep(100)
     # 1. Prepare Wayland
     while prepareRead(p.display) != 0:

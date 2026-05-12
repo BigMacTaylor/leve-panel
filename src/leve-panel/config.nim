@@ -12,7 +12,7 @@ const defaultConfig =
 
 # Panel Settings
 [Panel]
-pos = "top"
+pos = "bottom"
 color = "#070C1E"
 size = 46
 icon_size = 32
@@ -89,8 +89,31 @@ proc getIconPath(s: string): string =
     echo "Error: Invalid icon path \n"
     return ""
 
+proc getFont(): string =
+  let dir = getConfigDir() / "font"
+  for kind, path in walkDir(dir):
+    if kind == pcFile:
+      let (_, _, ext) = splitFile(path)
+      if ext == ".ttf":
+        echo "Using font: ", path, "\n"
+        return path
+
+  echo "Warning: Font not found"
+  echo "Using fallback..."
+  var (output, status) = execCmdEx("""fc-match --format="%{file}" monospace""")
+
+  let path = strip(output)
+
+  if fileExists(path):
+    echo path, "\n"
+    return path
+  else:
+    quit("Error: Could not find valid font \n")
+
+let fontPath = getFont()
+
 proc parseConfig(configFile: string) =
-  echo "Reading config..."
+  echo "Reading config... \n"
 
   let config =
     try:

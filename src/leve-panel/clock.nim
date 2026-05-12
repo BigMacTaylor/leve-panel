@@ -5,21 +5,6 @@
 #
 # ========================================================================================
 
-proc getFont(): string =
-  let dir = getConfigDir()
-  for kind, path in walkDir(dir):
-    if kind == pcFile:
-      let (_, _, ext) = splitFile(path)
-      if ext == ".ttf":
-        return path
-
-  echo "Warning: Font not found"
-  echo "Using fallback"
-  var (output, status) = execCmdEx("""fc-match --format="%{file}" monospace""")
-  return strip(output)
-
-let fontPath = getFont()
-
 # Callback function to update the label
 proc getTime(): string =
   let now = now()
