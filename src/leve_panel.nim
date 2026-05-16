@@ -467,7 +467,6 @@ proc main() =
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
 
-
     # Desktop indicator widget
     if not (current_desktop == getCurrentSwayWorkspace()):
       current_desktop = getCurrentSwayWorkspace()
@@ -477,18 +476,7 @@ proc main() =
           updateWidget(addr widget)
       p.surface.wl_surface_commit()
 
-#[
-    # Desktop indicator
-    for widget in widgets:
-      if widget.widgetType == WidgetType.desktop:
-        widget.img = newDesktopImg()
-        updateWidget(addr widget)
-    p.surface.commit()
-]#
-
-
     # Volume widget
-    # --------------
     # Check if data is available
     var data = newString(64)
     if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:

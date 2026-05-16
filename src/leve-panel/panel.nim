@@ -81,7 +81,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
 
   let memPool = panel.shMem.wl_shm_create_pool(int32(fd), size)
   panel.buffer = memPool.wl_shm_pool_create_buffer(
-  #let buffer = get pool.createBuffer(
     #0, cint(width), cint(height), cint(stride), cast[uint32](format_xrgb8888)
     int32(0),
     int32(width),
@@ -201,13 +200,13 @@ proc configureSurface(
     height: uint32,
 ) {.cdecl.} =
 
+  cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
+
   if p.buffer != nil:
     #destroy(p.buffer)
     return
 
   let panel = cast[ptr LevePanel](data)
-  cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
-
   let buffer = drawFrame(panel)
 
   # Attach and Commit
