@@ -15,21 +15,6 @@ var volMute = false
 var cur_vol = 100
 var volState = VolState.high
 
-#[
-proc setVolume(volume: int) =
-  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ " & $volume & "%"
-  #discard execProcess(cmd & $volume & "%")
-  let (output, status) = execCmdEx(cmd, options={})
-
-  if status != 0:
-    echo "Error setting volume level"
-    return
-
-proc volumeChanged(scale: Range) =
-  let volume = int(scale.getValue())
-  setVolume(volume)
-]#
-
 proc getMute(): bool =
   let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
   var (output, status) = execCmdEx(cmd, options={})
@@ -77,7 +62,6 @@ proc newVolImg(): Image =
   else:
     p.iconSize
   let padding = (p.size - iconSize) / 2
-  let iconPath = getConfigDir() / "icons" / "volume"
   var iconName: string
 
   case volState
@@ -90,13 +74,17 @@ proc newVolImg(): Image =
   else: # High
     iconName = "audio-volume-high-symbolic.png"
 
+  var iconPath = getConfigDir() / "icons" / iconName
+  if not fileExists(iconPath):
+    iconPath = "/usr/share/leve-panel/icons" / iconName
+
   # Create image
   let img = newImage(p.size, p.size)
 
   # Load Icon
-  echo iconPath / iconName
+  echo "Load icon: ", iconPath
   let icon = try:
-    readImage(iconPath / iconName)
+    readImage(iconPath)
   except:
     echo "Error: Icon not found"
     notFoundIcon()

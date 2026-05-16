@@ -62,11 +62,9 @@ terminal = false
 """
 
 proc getConfigDir(): string =
-  let home = getEnv("XDG_CONFIG_HOME")
-  if not home.isEmptyOrWhitespace():
-    result = home / "leve-panel"
-  else:
-    result = os.getHomeDir() / ".config" / "leve-panel"
+  # Get XDG_CONFIG_HOME or default "~/.config"
+  let dir = getEnv("XDG_CONFIG_HOME", os.getHomeDir() / ".config")
+  return dir / "leve-panel"
 
 proc initFile(fileName: string, defaultData: string): string =
   let path = getConfigDir()
@@ -81,12 +79,12 @@ proc getIconPath(s: string): string =
   var icon = s
 
   if not ('/' in icon):
-    icon = getConfigDir() / "icons" / "favorites" / icon
+    icon = getConfigDir() / "icons" / icon
 
   if fileExists(icon):
     return icon
   else:
-    echo "Error: Invalid icon path \n"
+    echo "Config Error: Invalid icon path \n"
     return ""
 
 proc getFont(): string =
@@ -110,7 +108,7 @@ proc getFont(): string =
   else:
     quit("Error: Could not find valid font \n")
 
-let fontPath = getFont()
+var fontPath = getFont()
 
 proc parseConfig(configFile: string) =
   echo "Reading config... \n"

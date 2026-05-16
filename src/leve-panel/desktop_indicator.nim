@@ -24,7 +24,11 @@ proc newDesktopImg(): Image =
   let text = getCurrentSwayWorkspace()
 
   # Draw Text
-  let font = readFont(fontPath)
+  let font = try:
+    readFont(fontPath)
+  except:
+    fontPath = getFont()
+    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 

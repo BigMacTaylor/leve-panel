@@ -103,6 +103,8 @@ type Widget = ref object
 var widgets: seq[Widget] = @[]
 var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
+let process = startProcess("pactl", args = ["subscribe"], options = {asyncTools.ProcessOption.poUsePath, poStdErrToStdOut})
+let outputPipe = process.outputHandle()
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, power, desktop_indicator, panel]
@@ -309,9 +311,6 @@ proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32
 # ----------------------------------------------------------------------------------------
 #                                    Main
 # ----------------------------------------------------------------------------------------
-
-let process = startProcess("pactl", args = ["subscribe"], options = {asyncTools.ProcessOption.poUsePath, poStdErrToStdOut})
-let outputPipe = process.outputHandle()
 
 proc main() =
   # Parse config and get favorite apps

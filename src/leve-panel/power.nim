@@ -16,29 +16,27 @@ proc newPowerIcon(): Image =
   else:
     p.iconSize
   let padding = (p.size - iconSize) / 2
-  let iconPath = getConfigDir() / "icons" / "favorites"
-  let iconName = "power.png"
+
+  var iconPath = getConfigDir() / "icons" / "power.png"
+  if not fileExists(iconPath):
+    iconPath = "/usr/share/leve-panel/icons/power.png"
 
   # Create image
   let img = newImage(p.size, p.size)
 
   # Load Icon
-  echo iconPath / iconName
-  let icon = try:
-    readImage(iconPath / iconName)
-  except:
-    echo "Error: Icon not found"
-    notFoundIcon()
-
+  echo "Load icon: ", iconPath
+  let icon =
+    try: readImage(iconPath)
+    except:
+      echo "Error: Icon not found"
+      notFoundIcon()
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
   img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
   return img
-
-
-
 
 proc newPowerWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create icon
