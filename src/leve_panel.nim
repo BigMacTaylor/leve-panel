@@ -105,6 +105,7 @@ var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 let process = startProcess("pactl", args = ["subscribe"], options = {asyncTools.ProcessOption.poUsePath, poStdErrToStdOut})
 let outputPipe = process.outputHandle()
+setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, power, desktop_indicator, panel]
