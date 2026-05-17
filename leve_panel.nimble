@@ -11,7 +11,7 @@ bin           = @["leve_panel"]
 # Dependencies
 requires "nim >= 2.2.4"
 requires "https://github.com/BigMacTaylor/nayland.git"
-requires "asynctools"
+requires "subprocess"
 requires "parsetoml"
 requires "pixie"
 
