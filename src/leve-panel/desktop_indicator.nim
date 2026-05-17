@@ -20,7 +20,7 @@ proc getCurrentSwayWorkspace(): string =
   return "None"
 
 proc newDesktopImg(): Image =
-  let img = newImage(p.size, p.size)
+  let img = newImage(p.size * 2, p.size)
   let text = getCurrentSwayWorkspace()
 
   # Draw Text

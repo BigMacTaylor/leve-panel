@@ -124,7 +124,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
 
   # Placeholder for switcher
   pos = (width / 2) - float32(p.size)
-  let desktop = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
+  let desktop = newDesktopWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
   widgets.add(desktop)
   ctx.drawImage(desktop.img, pos, 0)
 
