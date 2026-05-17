@@ -114,7 +114,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      widget = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      continue
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
@@ -123,10 +123,11 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     pos = pos + float32(p.size)
 
   # Placeholder for switcher
-  pos = (width / 2) - float32(p.size)
-  let desktop = newDesktopWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
-  widgets.add(desktop)
-  ctx.drawImage(desktop.img, pos, 0)
+  if p.desktop_indicator != Indicator.none:
+    pos = (width / 2) - float32(p.size)
+    let desktop = newDesktopWidget([int(pos), 0], [int(pos) + (2 * p.size), p.size])
+    widgets.add(desktop)
+    ctx.drawImage(desktop.img, pos, 0)
 
   # Add system tray widgets
   pos = float32(width - p.size)
@@ -143,7 +144,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      widget = newDesktopWidget([int(pos), 0], [int(pos) + p.size, p.size])
+      continue
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)

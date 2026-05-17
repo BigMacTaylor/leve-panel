@@ -41,6 +41,11 @@ type PanelPos = enum
   left
   right
 
+type Indicator = enum
+  none
+  number
+  dots
+
 type DisplayInfo = ref object
   name: string
   pos_x: int32
@@ -70,6 +75,7 @@ type LevePanel = ref object
   mouse_y: float
   scrollUpCmd: string
   scrollDownCmd: string
+  desktop_indicator: Indicator = Indicator.none
 
 type WidgetType = enum
   favorite
@@ -84,9 +90,6 @@ type PanelItem = object
   exec: string
   terminal: bool
 
-var leftItems: seq[PanelItem]
-var rightItems: seq[PanelItem]
-
 type CallBack = tuple
   event: string
   handler: proc(data: pointer)
@@ -100,9 +103,14 @@ type Widget = ref object
   img: Image
   callBacks: CallBacks
 
+type imgProc = proc (): Image
+
+var leftItems: seq[PanelItem]
+var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
 var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
+var newDesktopImg: imgProc
 let opts = SubprocessOptions(useStdout: true)
 let volProcess = startSubprocess("pactl", ["subscribe"], opts)
 setCurrentDir(getHomeDir())

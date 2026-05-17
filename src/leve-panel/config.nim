@@ -142,6 +142,8 @@ proc parseConfig(configFile: string) =
       p.scrollUpCmd = panel["scroll_up"].getStr()
     if panel.hasKey("scroll_down"):
       p.scrollDownCmd = panel["scroll_down"].getStr()
+    if panel.hasKey("desktop_indicator"):
+      p.desktop_indicator = parseEnum[Indicator](panel["desktop_indicator"].getStr())
 
   # Left Side
   let leftElems = config["Left"].getElems()
