@@ -4,6 +4,21 @@ A very simple and lightweight panel for Wayland. It uses pure Wayland, without a
 
 ![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel.png "Leve Panel")
 
+## Installation
+
+### Debian/Ubuntu
+
+Download the `.deb` file from the [releases page](https://github.com/BigMacTaylor/leve-panel/releases) and
+
+```bash
+sudo apt install ./leve-panel_*.deb
+```
+
+## Dependencies
+
+- libwayland-dev
+- pulseaudio-utils
+
 ## Customization
 
 Config file is located in `~/.config/leve-panel/` and is in TOML format. Leve-panel must be restarted for changes to take effect.
