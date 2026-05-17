@@ -8,6 +8,6 @@ A very simple and lightweight panel for Wayland. It uses pure Wayland, without a
 
 Config file is located in `~/.config/leve-panel/` and is in TOML format. Leve-panel must be restarted for changes to take effect.
 
-Favorite icons should be placed in `~/.config/leve-panel/icons/favorites/` .
+Favorite icons should be placed in `~/.config/leve-panel/icons/` .
 
 *NOTE: Currently only png icons are supported, because pixie svg support is incomplete.*
