@@ -16,7 +16,7 @@ import
   pkg/nayland/bindings/[libwayland]
 
 import std/[os, posix, strutils, osproc, times]
-import asynctools
+import subprocess
 import parsetoml
 import pixie
 
@@ -103,8 +103,8 @@ type Widget = ref object
 var widgets: seq[Widget] = @[]
 var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
-let process = startProcess("pactl", args = ["subscribe"], options = {asyncTools.ProcessOption.poUsePath, poStdErrToStdOut})
-let outputPipe = process.outputHandle()
+let opts = SubprocessOptions(useStdout: true)
+let volProcess = startSubprocess("pactl", ["subscribe"], opts)
 setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
@@ -478,25 +478,15 @@ proc main() =
 
     # Volume widget
     # Check if data is available
-    var data = newString(64)
-    if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:
-      if data[0] == '\0':
-        echo "outputPipe: no data"
-        continue
-
+    if not volProcess.hasDataStdout():
+      echo "outputPipe: no data"
+    else:
       # Update volume state
       cur_vol = getVolume()
       volMute = getMute()
 
-      # TODO there has to be a better way to do this
-      # Read all content to "clear" it from the buffer
-      while true:
-        var data = newString(64)
-        if outputPipe.readInto(cast[pointer](addr data[0]), data.len) != nil:
-          echo data
-          if data[0] == '\0':
-            echo "no data"
-            break
+      # Read all content to "clear" it from buffer
+      discard volProcess.readStdout()
 
       # Check widget state
       if volState == getVolState():
@@ -518,7 +508,7 @@ proc main() =
 proc cleanup() {.noconv.} =
   echo "Program interrupted by user"
   echo "Performing cleanup..."
-  process.kill()
+  volProcess.close()
 
   quit()
 
