@@ -19,6 +19,15 @@ sudo apt install ./leve-panel_*.deb
 - libwayland-dev
 - pulseaudio-utils
 
+## Running
+
+To manually start leve-panel just enter the `leve-panel` command.
+Or to automatically start add it to your sway/startup config like:
+
+```text
+exec --no-startup-id leve-panel
+```
+
 ## Customization
 
 Config file is located in `~/.config/leve-panel/` and is in TOML format. Leve-panel must be restarted for changes to take effect.
