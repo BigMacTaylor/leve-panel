@@ -18,8 +18,12 @@ size = 46
 icon_size = 32
 scroll_up = "swaymsg workspace prev"
 scroll_down = "swaymsg workspace next"
+# Valid styles for indicator are
+# "number", "dots", and "none"
+desktop_indicator = "none"
 
 # Favorite Apps
+# Appear left to right
 [[Left]]
 widget = "favorite"
 icon = "menu.png"
@@ -45,6 +49,7 @@ exec = "google-chrome"
 terminal = false
 
 # Widgets
+# Appear right to left
 [[Right]]
 widget = "power"
 exec = "wlogout"
