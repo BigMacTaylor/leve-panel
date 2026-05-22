@@ -111,6 +111,8 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
     of WidgetType.volume:
       widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.menu:
+      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
@@ -141,6 +143,8 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
     of WidgetType.volume:
       widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.menu:
+      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:

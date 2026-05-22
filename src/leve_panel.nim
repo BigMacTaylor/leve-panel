@@ -81,6 +81,7 @@ type WidgetType = enum
   favorite
   clock
   volume
+  menu
   power
   desktop
 
@@ -116,7 +117,7 @@ let volProcess = startSubprocess("pactl", ["subscribe"], opts)
 setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
-include "leve-panel"/[config, favorites, clock, volume, power, desktop_indicator, panel]
+include "leve-panel"/[config, favorites, clock, volume, menu, power, desktop_indicator, panel]
 
 # ----------------------------------------------------------------------------------------
 #                                    Get Output
