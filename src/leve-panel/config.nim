@@ -129,13 +129,16 @@ proc parseConfig(configFile: string) =
   if config.hasKey("Panel"):
     let panel = config["Panel"]
     if panel.hasKey("pos"):
-      p.pos = parseEnum[PanelPos](panel["pos"].getStr())
+      try:
+        p.pos = parseEnum[PanelPos](panel["pos"].getStr())
+      except:
+        echo "Config Error: Invalid panel position"
     if panel.hasKey("color"):
       try:
         discard parseHtmlColor(panel["color"].getStr())
         p.color = panel["color"].getStr()
       except:
-        echo "Error: Invalid color in config, using default."
+        echo "Config Error: Invalid background color"
     if panel.hasKey("size"):
       p.size = int32(panel["size"].getInt())
     if panel.hasKey("icon_size"):
@@ -148,7 +151,10 @@ proc parseConfig(configFile: string) =
     if panel.hasKey("scroll_down"):
       p.scrollDownCmd = panel["scroll_down"].getStr()
     if panel.hasKey("desktop_indicator"):
-      p.desktop_indicator = parseEnum[Indicator](panel["desktop_indicator"].getStr())
+      try:
+        p.desktop_indicator = parseEnum[Indicator](panel["desktop_indicator"].getStr())
+      except:
+        echo "Config Error: Invalid indicator style"
 
   # Left Side
   let leftElems = config["Left"].getElems()
@@ -156,7 +162,13 @@ proc parseConfig(configFile: string) =
   for elem in leftElems:
     var item: PanelItem
     if elem.hasKey("widget"):
-      item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      try:
+        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      except:
+        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
+        continue
+    else: continue
+
     if elem.hasKey("icon"):
       item.icon = getIconPath(elem["icon"].getStr())
     if elem.hasKey("exec"):
@@ -172,7 +184,13 @@ proc parseConfig(configFile: string) =
   for elem in rightElems:
     var item: PanelItem
     if elem.hasKey("widget"):
-      item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      try:
+        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      except:
+        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
+        continue
+    else: continue
+
     if elem.hasKey("icon"):
       item.icon = getIconPath(elem["icon"].getStr())
     if elem.hasKey("exec"):
