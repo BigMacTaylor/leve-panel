@@ -197,6 +197,18 @@ proc updateWidget(w: ptr Widget) =
 #                                    Configure Surface
 # ----------------------------------------------------------------------------------------
 
+proc surfaceClose(
+    data: pointer,
+    surface: ptr zwlr_layer_surface_v1,
+) {.cdecl.} =
+
+  echo "Layer surface closed by compositor"
+    
+  # Generally, you must destroy the surface and the wl_surface
+  #zwlr_layer_surface_v1_destroy(layerSurface)
+  # Note: You should also destroy the underlying wl_surface here
+  # if it was created specifically for this layer surface.
+
 proc configureSurface(
     data: pointer,
     surface: ptr zwlr_layer_surface_v1,

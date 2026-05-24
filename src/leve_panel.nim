@@ -405,7 +405,10 @@ proc main() =
   of PanelPos.right:
     p.layerSurface.zwlr_layer_surface_v1_set_anchor(11)
 
-  let surface_listener = zwlrLayerSurfaceV1Listener(configure: configureSurface)
+  let surface_listener = zwlrLayerSurfaceV1Listener(
+    configure: configureSurface,
+    closed: surfaceClose
+    )
   discard p.layerSurface.zwlr_layer_surface_v1_add_listener(addr surface_listener, addr p)
 
   # Get Seat (Seat holds the pointer)
