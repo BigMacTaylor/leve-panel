@@ -1,5 +1,17 @@
 import json
 
+## Helper to construct a raw Sway IPC message packet
+proc createIpcPacket(msgType: uint32, payload: string): string =
+# Package an IPC command with headers: Magic string, length, and type
+  let len = payload.len.int32
+  result = IPC_MAGIC & "\0\0\0\0" & "\x02\0\0\0" # 2 for subscribe
+  # Replace \0\0\0\0 with our actual len (in little endian)
+  result[6] = char(len and 0xFF)
+  result[7] = char((len shr 8) and 0xFF)
+  result[8] = char((len shr 16) and 0xFF)
+  result[9] = char((len shr 24) and 0xFF)
+  result.add(payload)
+
 
 
 proc getCurrentSwayWorkspace(): string =
