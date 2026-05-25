@@ -19,6 +19,8 @@ import std/[os, posix, strutils, osproc, times]
 import subprocess
 import parsetoml
 import pixie
+import std/[nativesockets]
+import net
 
 proc prepare_read*(display: ptr wl_display): cint {.
     importc: "wl_display_prepare_read", dynlib: "libwayland-client.so".}
@@ -34,6 +36,10 @@ proc timerfd_create(clockid, flags: cint): cint {.importc, header: "<sys/timerfd
 proc timerfd_settime(
   fd: cint, flags: cint, newVal: ptr ITimerspec, oldVal: ptr ITimerspec
 ): cint {.importc, header: "<sys/timerfd.h>".}
+
+const
+  IpcTypeSubscribe = 2'u32
+  IPC_MAGIC = "i3-ipc"
 
 type PanelPos = enum
   top
@@ -258,48 +264,90 @@ proc main() =
   # Commit surface
   p.surface.wl_surface_commit()
 
-  # --- Timer Setup ---
-  let tfd = timerfd_create(CLOCK_MONOTONIC, 0)
+  # ----------------------------------------------------------------------------------------
+  #                                  Setup FDs
+  # ----------------------------------------------------------------------------------------
+
+  # Get the Sway Socket Path
+  let socketPath = getEnv("SWAYSOCK")
+  if socketPath.len == 0:
+    echo "Error: SWAYSOCK environment variable not set. Is Sway running?"
+
+  # Create UNIX FD for sway
+  let sway_fd = createNativeSocket(AF_UNIX, SOCK_STREAM, IPPROTO_NONE)
+  if sway_fd == osInvalidSocket:
+    echo "Error: Could not create socket file descriptor."
+    quit(1)
+
+  # Copy socketPath address to sockAddress var
+  var sockAddress: Sockaddr_un
+  sockAddress.sun_family = Domain.AF_UNIX.TSaFamily
+  # Handle string bounds checking safely for the socket struct length
+  let copyLen = min(socketPath.len, sockAddress.sun_path.high)
+  copyMem(addr sockAddress.sun_path[0], addr socketPath[0], copyLen)
+
+  # Connect FD to sockAddress
+  if connect(sway_fd, cast[ptr SockAddr](addr sockAddress), SockLen(sizeof(sockAddress))) != 0:
+    echo "Error: Failed to connect to SWAYSOCK."
+    close(sway_fd)
+
+  # Send the Subscription Payload
+  let payload = """["workspace"]"""
+  let packet = createIpcPacket(IpcTypeSubscribe, payload)
+  
+  let bytesSent = send(sway_fd, addr packet[0], packet.len.int32, 0'i32)
+  if bytesSent < 0:
+    echo "Error: Failed to send subscription payload."
+    close(sway_fd)
+
+  # Setup Timer FD
+  let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
   spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
   #spec.it_interval.tv_nsec = 500_000_000 # Repeat every 0.5s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
-  discard timerfd_settime(tfd, 0, addr spec, nil)
+  discard timerfd_settime(time_fd, 0, addr spec, nil)
 
+  # Get Wayland FD
   let wl_fd = wl_display_get_fd(p.display)
 
-  # --- The Event Loop ---
-  var fds: array[2, TPollfd]
+  var fds: array[3, TPollfd]
   fds[0] = TPollfd(fd: wl_fd, events: POLLIN)
-  fds[1] = TPollfd(fd: tfd, events: POLLIN)
-
-  echo "Nim Wayland Clock Running..."
+  fds[1] = TPollfd(fd: time_fd, events: POLLIN)
+  fds[2] = TPollfd(fd: sway_fd.cint, events: POLLIN)
 
   var current_desktop = getCurrentSwayWorkspace()
+  var buffer = newString(4096)
+
+  echo "Leve-Panel: Clock Running..."
+
+  # ----------------------------------------------------------------------------------------
+  #                                  Event Loop
+  # ----------------------------------------------------------------------------------------
 
   while true:
     echo "\n", "main loop"
-    sleep(100)
-    # 1. Prepare Wayland
+
+    # Prepare Wayland
     while prepareRead(p.display) != 0:
       discard dispatchPending(p.display)
     discard wl_display_flush(p.display)
 
-    # 2. Poll both FDs (infinite timeout)
-    if poll(addr fds[0], 2, -1) < 0:
+    # Poll FDs (timeout of -1 means block indefinitely)
+    if poll(addr fds[0], 3, -1) < 0:
       break
 
-    # 3. Handle Wayland Events
+    # Handle Wayland Events
     if (fds[0].revents and POLLIN) != 0:
       discard read_events(p.display)
       discard dispatchPending(p.display)
     else:
       cancel_read(p.display)
 
-    # 4. Handle Timer
+    # Clock widget
     if (fds[1].revents and POLLIN) != 0:
       var expirations: uint64
-      discard read(tfd, addr expirations, sizeof(expirations))
+      discard read(time_fd, addr expirations, sizeof(expirations))
 
       echo "Tick: ", now().format("HH:mm:ss")
 
@@ -312,8 +360,13 @@ proc main() =
         p.surface.wl_surface_commit()
 
     # Desktop indicator widget
-    if not (current_desktop == getCurrentSwayWorkspace()):
-      current_desktop = getCurrentSwayWorkspace()
+    if (fds[2].revents and POLLIN) != 0:
+      let bytesRead = recv(sway_fd, addr buffer[0], buffer.len.int32, 0'i32)
+      if bytesRead <= 0:
+        echo "Sway IPC disconnected or read error encountered."
+        break
+
+      #current_desktop = getCurrentSwayWorkspace()
       for widget in widgets:
         if widget.widgetType == WidgetType.desktop:
           widget.img = newDesktopImg()
@@ -321,10 +374,10 @@ proc main() =
       p.surface.wl_surface_commit()
 
     # Volume widget
-    # Check if data is available
     if not volProcess.hasDataStdout():
       echo "outputPipe: no data"
     else:
+      echo "Update volume state"
       # Update volume state
       cur_vol = getVolume()
       volMute = getMute()
@@ -333,16 +386,17 @@ proc main() =
       discard volProcess.readStdout()
 
       # Check widget state
-      if volState == getVolState():
-        continue
+      if volState != getVolState():
+        # Update widget
+        volState = getVolState()
+        for widget in widgets:
+          if widget.widgetType == WidgetType.volume:
+            widget.img = newVolImg()
+            updateWidget(addr widget)
+        p.surface.wl_surface_commit()
 
-      # Update widget
-      volState = getVolState()
-      for widget in widgets:
-        if widget.widgetType == WidgetType.volume:
-          widget.img = newVolImg()
-          updateWidget(addr widget)
-      p.surface.wl_surface_commit()
+
+
 
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)
