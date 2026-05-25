@@ -49,7 +49,8 @@ type PanelPos = enum
 
 type Indicator = enum
   none
-  number
+  num
+  numbers
   dots
 
 type DisplayInfo = ref object
@@ -364,14 +365,13 @@ proc main() =
       let bytesRead = recv(sway_fd, addr buffer[0], buffer.len.int32, 0'i32)
       if bytesRead <= 0:
         echo "Sway IPC disconnected or read error encountered."
-        break
-
-      #current_desktop = getCurrentSwayWorkspace()
-      for widget in widgets:
-        if widget.widgetType == WidgetType.desktop:
-          widget.img = newDesktopImg()
-          updateWidget(addr widget)
-      p.surface.wl_surface_commit()
+      else:
+        #current_desktop = getCurrentSwayWorkspace()
+        for widget in widgets:
+          if widget.widgetType == WidgetType.desktop:
+            widget.img = newDesktopImg()
+            updateWidget(addr widget)
+        p.surface.wl_surface_commit()
 
     # Volume widget
     if not volProcess.hasDataStdout():

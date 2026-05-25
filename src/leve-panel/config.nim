@@ -19,14 +19,13 @@ icon_size = 32
 scroll_up = "swaymsg workspace prev"
 scroll_down = "swaymsg workspace next"
 # Valid styles for indicator are
-# "number", "dots", and "none"
+# "num", "numbers", "dots", and "none"
 desktop_indicator = "none"
 
 # Favorite Apps
 # Appear left to right
 [[Left]]
-widget = "favorite"
-icon = "menu.png"
+widget = "menu"
 exec = "griddle"
 terminal = false
 
@@ -98,7 +97,6 @@ proc getFont(): string =
     if kind == pcFile:
       let (_, _, ext) = splitFile(path)
       if ext == ".ttf":
-        echo "Using font: ", path, "\n"
         return path
 
   echo "Warning: Font not found"

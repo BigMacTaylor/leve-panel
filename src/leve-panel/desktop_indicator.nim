@@ -1,6 +1,13 @@
+# ========================================================================================
+#
+#                                   Leve Panel
+#                                 Desktop Widget
+#
+# ========================================================================================
+
 import json
 
-## Helper to construct a raw Sway IPC message packet
+# Helper to construct a raw Sway IPC message packet
 proc createIpcPacket(msgType: uint32, payload: string): string =
 # Package an IPC command with headers: Magic string, length, and type
   let len = payload.len.int32
@@ -29,6 +36,23 @@ proc getCurrentSwayWorkspace(): string =
 
   return "None"
 
+proc getSwayWorkspaces(): string =
+  let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
+  
+  if exitCode != 0:
+    return "Error: Could not connect to sway"
+
+  let json = parseJson(output)
+  var workspaces = ""
+
+  for workspace in json:
+    if workspace["focused"].getBool():
+      workspaces = workspaces & "[" & workspace["name"].getStr() & "]"
+    else:
+      workspaces = workspaces & " " & workspace["name"].getStr() & " "
+
+  return workspaces
+
 proc getNumSwayWorkspaces(): string =
   let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
   
@@ -44,11 +68,38 @@ proc getNumSwayWorkspaces(): string =
   return $workspaces
 
 proc desktopDotsImg(): Image =
-  let img = newImage(p.size * 2, p.size)
+  let img = newImage(p.size * 4, p.size)
   let curWS = getCurrentSwayWorkspace()
   let numWS = getNumSwayWorkspaces()
+  let WS = getSwayWorkspaces()
+  let text = getCurrentSwayWorkspace() & "-" & getNumSwayWorkspaces()
 
-  let text = curWS & " - " & numWS
+  # Draw Text
+  let font = try:
+    readFont(fontPath)
+  except:
+    fontPath = getFont()
+    readFont(fontPath)
+  font.size = 15
+  font.paint.color = color(1, 1, 1) # White
+
+  # Center text both horizontally and vertically
+  let layout = font.typeset(
+    text,
+    bounds = vec2(img.width.float, img.height.float),
+    hAlign = CenterAlign,  # Horizontal: Left, Center, Right
+    vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
+  )
+
+  # Draw the text within the specified bounds, centered
+  img.fillText(layout, translate(vec2(0, 0)))
+  #img.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
+
+  return img
+
+proc desktopNumbersImg(): Image =
+  let img = newImage(p.size * 4, p.size)
+  let text = getSwayWorkspaces()
 
   # Draw Text
   let font = try:
@@ -74,7 +125,7 @@ proc desktopDotsImg(): Image =
   return img
 
 proc desktopNumImg(): Image =
-  let img = newImage(p.size * 2, p.size)
+  let img = newImage(p.size * 4, p.size)
   let text = getCurrentSwayWorkspace()
 
   # Draw Text
@@ -102,9 +153,10 @@ proc desktopNumImg(): Image =
 
 proc newDesktopWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
   # Create volume Image
-  #if p.desktop_indicator == Indicator.dots:
-  if false:
+  if p.desktop_indicator == Indicator.dots:
     newDesktopImg = desktopDotsImg
+  elif p.desktop_indicator == Indicator.numbers:
+    newDesktopImg = desktopNumbersImg
   else:
     newDesktopImg = desktopNumImg
   let icon = newDesktopImg()
