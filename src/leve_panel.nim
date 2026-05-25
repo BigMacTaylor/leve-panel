@@ -16,11 +16,10 @@ import
   pkg/nayland/bindings/[libwayland]
 
 import std/[os, posix, strutils, osproc, times]
+import std/[nativesockets, net]
 import subprocess
 import parsetoml
 import pixie
-import std/[nativesockets]
-import net
 
 proc prepare_read*(display: ptr wl_display): cint {.
     importc: "wl_display_prepare_read", dynlib: "libwayland-client.so".}

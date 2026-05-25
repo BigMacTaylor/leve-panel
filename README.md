@@ -18,14 +18,18 @@ sudo apt install ./leve-panel_*.deb
 
 - libwayland-dev
 - pulseaudio-utils
+- fontconfig
 
 ## Running
 
 To manually start leve-panel just enter the `leve-panel` command.
-Or to automatically start add it to your sway/startup config like:
+Or automatically start it, by adding it to your sway/startup config like this:
 
 ```text
-exec --no-startup-id leve-panel
+exec_always {
+    killall leve-panel
+    leve-panel
+}
 ```
 
 ## Customization
