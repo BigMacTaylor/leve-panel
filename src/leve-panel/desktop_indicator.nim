@@ -155,7 +155,7 @@ proc desktopNumbersImg(curWS: string): Image =
     if $workspace == curWS:
       text = text & "[" & $workspace & "]"
     else:
-      text = text & " " & $workspace & " "
+      text = text & "\xA0" & $workspace & "\xA0"
 
   # Draw Text
   let font = try:
