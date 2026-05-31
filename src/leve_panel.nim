@@ -16,7 +16,7 @@ import
   pkg/nayland/bindings/[libwayland]
 
 import std/[os, posix, strutils, osproc, times]
-import std/[nativesockets, net]
+import std/[nativesockets, net, monotimes]
 import subprocess
 import parsetoml
 import pixie
@@ -110,11 +110,12 @@ type Widget = ref object
   img: Image
   callBacks: CallBacks
 
-type imgProc = proc (): Image
+type imgProc = proc (curWS: string): Image
 
 var leftItems: seq[PanelItem]
 var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
+var workspaces: seq[int] = @[]
 var  displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 var newDesktopImg: imgProc
@@ -303,8 +304,8 @@ proc main() =
   # Setup Timer FD
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
-  spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
-  #spec.it_interval.tv_nsec = 500_000_000 # Repeat every 0.5s
+  #spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
+  spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.5s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 
@@ -316,8 +317,11 @@ proc main() =
   fds[1] = TPollfd(fd: time_fd, events: POLLIN)
   fds[2] = TPollfd(fd: sway_fd.cint, events: POLLIN)
 
-  var current_desktop = getCurrentSwayWorkspace()
-  var buffer = newString(4096)
+  #var buffer = newString(4096)
+  var curWS = ""
+  var swayEventsReady = false
+  var lastSwayEvent = getMonoTime()
+  var volPollTime = getMonoTime()
 
   echo "Leve-Panel: Clock Running..."
 
@@ -359,41 +363,76 @@ proc main() =
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
 
-    # Desktop indicator widget
+    # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
-      let bytesRead = recv(sway_fd, addr buffer[0], buffer.len.int32, 0'i32)
-      if bytesRead <= 0:
-        echo "Sway IPC disconnected or read error encountered."
+      # Read the 14-Byte Response Header
+      let headerBytes = readExact(sway_fd.cint, 14)
+
+      # Verify magic string
+      if headerBytes[0..5] != "i3-ipc":
+        echo("Error: Invalid IPC magic string received.")
+        #let bytesRead = recv(sway_fd, addr buffer[0], buffer.len.int32, 0'i32)
+        #if bytesRead <= 0:
+          #echo "Sway IPC disconnected or read error encountered."
       else:
-        #current_desktop = getCurrentSwayWorkspace()
+        # Substring the buffer to isolate what arrived
+        #let rawData = buffer[0 ..< bytesRead]
+        #if rawData.len > 14:
+          #echo "data > 14"
+        #let jsonPayload = rawData[14 .. ^1]
+
+        # Get payload length from bytes 6 to 9 (Little Endian)
+        var replyLen: uint32
+        copyMem(addr replyLen, addr headerBytes[6], 4)
+
+        # Get message type from bytes 10 to 13
+        var replyType: uint32
+        copyMem(addr replyType, addr headerBytes[10], 4)
+
+        # Read JSON Payload
+        let json = readExact(cint(sway_fd), int(replyLen))
+        curWS = getWsFromJson(json)
+        echo "current ws: ", curWS
+        swayEventsReady = true
+        lastSwayEvent = getMonoTime()
+
+    # Check if Sway Events are ready
+    if swayEventsReady:
+      let now = getMonoTime()
+      let threshold = initDuration(milliseconds = 10)
+      # Update desktop indicator widget
+      if now > lastSwayEvent + threshold:
         for widget in widgets:
           if widget.widgetType == WidgetType.desktop:
-            widget.img = newDesktopImg()
+            widget.img = newDesktopImg(curWS)
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
+        swayEventsReady = false
 
     # Volume widget
-    if not volProcess.hasDataStdout():
-      echo "outputPipe: no data"
-    else:
-      echo "Update volume state"
-      # Update volume state
-      cur_vol = getVolume()
-      volMute = getMute()
+    if getMonoTime() > volPollTime + initDuration(milliseconds = 1000):
+      if not volProcess.hasDataStdout():
+        echo "outputPipe: no data"
+      else:
+        echo "Update volume state"
+        # Update volume state
+        cur_vol = getVolume()
+        volMute = getMute()
 
-      # Read all content to "clear" it from buffer
-      discard volProcess.readStdout()
+        # Read all content to "clear" it from buffer
+        discard volProcess.readStdout()
 
-      # Check widget state
-      if volState != getVolState():
-        # Update widget
-        volState = getVolState()
-        for widget in widgets:
-          if widget.widgetType == WidgetType.volume:
-            widget.img = newVolImg()
-            updateWidget(addr widget)
-        p.surface.wl_surface_commit()
+        # Check widget state
+        if volState != getVolState():
+          # Update widget
+          volState = getVolState()
+          for widget in widgets:
+            if widget.widgetType == WidgetType.volume:
+              widget.img = newVolImg()
+              updateWidget(addr widget)
+          p.surface.wl_surface_commit()
 
+      volPollTime = getMonoTime()
 
 
 

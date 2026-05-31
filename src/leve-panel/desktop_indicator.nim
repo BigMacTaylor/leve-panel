@@ -6,6 +6,8 @@
 # ========================================================================================
 
 import json
+import std/algorithm
+
 
 # Helper to construct a raw Sway IPC message packet
 proc createIpcPacket(msgType: uint32, payload: string): string =
@@ -19,9 +21,18 @@ proc createIpcPacket(msgType: uint32, payload: string): string =
   result[9] = char((len shr 24) and 0xFF)
   result.add(payload)
 
+# Helper to read an exact amount of bytes from the socket
+proc readExact(fd: cint, bytesToRead: int): string =
+  result = newString(bytesToRead)
+  var totalRead = 0
+  while totalRead < bytesToRead:
+    let chunk = read(fd, result[totalRead].addr, bytesToRead - totalRead)
+    if chunk <= 0:
+      echo("Error: Sway connection closed or failed while reading.")
+      break
+    totalRead += chunk
 
-
-proc getCurrentSwayWorkspace(): string =
+proc getCurrentWS(): string =
   let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
   
   if exitCode != 0:
@@ -34,45 +45,84 @@ proc getCurrentSwayWorkspace(): string =
     if workspace["focused"].getBool():
       return workspace["name"].getStr()
 
-  return "None"
+proc getWsFromJson(json: string): string =
+  # Parse the string into a JSON node
+  let eventNode = try:
+    parseJson(json)
+  except:
+    return getCurrentWS()
 
-proc getSwayWorkspaces(): string =
-  let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
+  if not eventNode.hasKey("change"):
+    return getCurrentWS()
+
+  # Parse the "change" event
+  let eventType = eventNode["change"].getStr()
+
+  if eventType == "focus":
+    echo "focus"
+    let oldWS = eventNode["old"]["name"].getStr()
+    echo "old ws ", oldWS
+    let curWS = eventNode["current"]["name"].getStr()
+    echo "new ws ", curWS
+    return curWS
+
+    #let containerName = eventNode["container"]["name"].getStr()
+    #let containerId = eventNode["container"]["id"].getInt()
   
-  if exitCode != 0:
-    return "Error: Could not connect to sway"
+    #echo "Focused window: ", containerName, " (ID: ", containerId, ")"
 
-  let json = parseJson(output)
-  var workspaces = ""
+  elif eventType == "init":
+    let curWS = parseInt(eventNode["current"]["name"].getStr())
+    echo "init ws ", curWS
+    workspaces.insert(curWS, workspaces.lowerBound(curWS))
 
-  for workspace in json:
-    if workspace["focused"].getBool():
-      workspaces = workspaces & "[" & workspace["name"].getStr() & "]"
+    let focus = eventNode["current"]["focused"].getbool()
+    echo "init ws focus ", focus
+    echo workspaces
+    if focus:
+      return $curWS
     else:
-      workspaces = workspaces & " " & workspace["name"].getStr() & " "
+      return getCurrentWS()
 
-  return workspaces
+  elif eventType == "empty":
+    let curWS = parseInt(eventNode["current"]["name"].getStr())
+    echo "remove ws: ", curWS
+    let idx = workspaces.find(curWS)
+    if idx != -1:
+      workspaces.delete(idx)
+    echo workspaces
+    return getCurrentWS()
 
-proc getNumSwayWorkspaces(): string =
+proc initWorkspaces() =
   let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
   
   if exitCode != 0:
-    return "Error: Could not connect to sway"
+    echo "Error: Could not connect to sway"
 
   let json = parseJson(output)
-  var workspaces = 0
 
   for workspace in json:
-    workspaces = workspaces + 1
+    workspaces.add(parseInt(workspace["name"].getStr()))
 
-  return $workspaces
+proc getNumWorkspaces(): string =
+  var n = 0
+  for workspace in workspaces:
+    n = n + 1
 
-proc desktopDotsImg(): Image =
+  return $n
+
+proc desktopDotsImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
-  let curWS = getCurrentSwayWorkspace()
-  let numWS = getNumSwayWorkspaces()
-  let WS = getSwayWorkspaces()
-  let text = getCurrentSwayWorkspace() & "-" & getNumSwayWorkspaces()
+  let text = curWS & "-" & getNumWorkspaces()
+
+#[
+  for workspace in workspaces:
+    if $workspace == curWS:
+      # draw highlight dot
+    else:
+      # draw regular dot
+]#
+
 
   # Draw Text
   let font = try:
@@ -97,9 +147,15 @@ proc desktopDotsImg(): Image =
 
   return img
 
-proc desktopNumbersImg(): Image =
+proc desktopNumbersImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
-  let text = getSwayWorkspaces()
+  var text = ""
+
+  for workspace in workspaces:
+    if $workspace == curWS:
+      text = text & "[" & $workspace & "]"
+    else:
+      text = text & " " & $workspace & " "
 
   # Draw Text
   let font = try:
@@ -124,9 +180,9 @@ proc desktopNumbersImg(): Image =
 
   return img
 
-proc desktopNumImg(): Image =
+proc desktopNumImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
-  let text = getCurrentSwayWorkspace()
+  let text = curWS
 
   # Draw Text
   let font = try:
@@ -152,6 +208,9 @@ proc desktopNumImg(): Image =
   return img
 
 proc newDesktopWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
+  # Get initial desktops
+  initWorkspaces()
+
   # Create volume Image
   if p.desktop_indicator == Indicator.dots:
     newDesktopImg = desktopDotsImg
@@ -159,7 +218,8 @@ proc newDesktopWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
     newDesktopImg = desktopNumbersImg
   else:
     newDesktopImg = desktopNumImg
-  let icon = newDesktopImg()
+
+  let icon = newDesktopImg(getCurrentWS())
 
   # Create callbacks
 
