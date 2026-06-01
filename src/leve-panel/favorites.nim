@@ -62,14 +62,14 @@ proc trimWhiteSpace(i: Image): Image =
   else:
     return i
 
-proc exec(fav: ptr PanelItem) =
-  var cmd = fav.exec
+proc exec(data: ptr PanelItem) =
+  var cmd = data.exec
 
   # Trim '%' and everything afterwards
   if '%' in cmd:
     cmd = cmd.split('%')[0]
 
-  if not fav.terminal:
+  if not data.terminal:
     discard execShellCmd(cmd & " &")
     return
 
@@ -84,10 +84,9 @@ proc exec(fav: ptr PanelItem) =
 
   discard execShellCmd(cmd & " &")
 
-proc onFavClick(fav: pointer) =
+proc onFavClick(data: pointer) =
   echo "on click"
-  exec(cast[ptr PanelItem](fav))
-  #echo new.name
+  exec(cast[ptr PanelItem](data))
 
 proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
   let padding = (p.size - p.iconSize) / 2

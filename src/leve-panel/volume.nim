@@ -97,10 +97,7 @@ proc newVolImg(): Image =
 
 proc onVolClick(data: pointer) =
   echo "open volume control"
-  echo "volume ", getVolume()
-
-  let cmd = cast[ptr PanelItem](data).exec
-  discard execShellCmd(cmd & " &")
+  exec(cast[ptr PanelItem](data))
 
 proc onMute(data: pointer) =
   echo "on mute"

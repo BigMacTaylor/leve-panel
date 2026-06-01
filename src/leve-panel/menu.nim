@@ -6,9 +6,8 @@
 # ========================================================================================
 
 proc onMenuBtn(data: pointer) =
-  echo "open menu "
-  let cmd = cast[ptr PanelItem](data).exec
-  discard execShellCmd(cmd & " &")
+  echo "open menu"
+  exec(cast[ptr PanelItem](data))
 
 proc newMenuIcon(): Image =
   let iconSize = if p.iconSize > 24:
