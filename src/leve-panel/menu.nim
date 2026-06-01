@@ -53,26 +53,3 @@ proc newMenuWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int])
   var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
 
   return widget
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
