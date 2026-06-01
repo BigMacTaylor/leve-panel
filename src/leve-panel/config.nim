@@ -20,7 +20,7 @@ scroll_up = "swaymsg workspace prev"
 scroll_down = "swaymsg workspace next"
 # Valid styles for indicator are
 # "num", "numbers", "dots", and "none"
-desktop_indicator = "none"
+desktop_indicator = "dots"
 
 # Favorite Apps
 # Appear left to right

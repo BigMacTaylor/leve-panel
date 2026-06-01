@@ -104,46 +104,41 @@ proc initWorkspaces() =
   for workspace in json:
     workspaces.add(parseInt(workspace["name"].getStr()))
 
-proc getNumWorkspaces(): string =
+proc getNumWorkspaces(): int =
   var n = 0
   for workspace in workspaces:
     n = n + 1
 
-  return $n
+  return n
 
 proc desktopDotsImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
-  let text = curWS & "-" & getNumWorkspaces()
+  let centerX: float32 = float32(p.size * 2)
+  let numCircles: int = getNumWorkspaces()
+  #let radius: int = 4
+  let radius: int = p.size div 10
+  let color = rgba(255, 255, 255, 255)
+  #let colorDim = rgba(180, 180, 180, 255)
+  let ctx = img.newContext()
+  ctx.fillStyle = color
 
-#[
+  # Row configuration
+  let gap: int = 10 # Gap between circles
+  let rowWidth: int = (numCircles * radius * 2) + (gap * (numCircles - 1))
+  let startX: float32 = centerX - (rowWidth / 2) + float32(radius)
+
+  var i = 0
+
   for workspace in workspaces:
+    let posX = startX + float32(i * (radius * 2 + gap))
+    let posY = p.size / 2
+
     if $workspace == curWS:
-      # draw highlight dot
+      ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
     else:
-      # draw regular dot
-]#
+      ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
 
-
-  # Draw Text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
-  font.size = 15
-  font.paint.color = color(1, 1, 1) # White
-
-  # Center text both horizontally and vertically
-  let layout = font.typeset(
-    text,
-    bounds = vec2(img.width.float, img.height.float),
-    hAlign = CenterAlign,  # Horizontal: Left, Center, Right
-    vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
-  )
-
-  # Draw the text within the specified bounds, centered
-  img.fillText(layout, translate(vec2(0, 0)))
-  #img.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
+    i = i + 1
 
   return img
 
