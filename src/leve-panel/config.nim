@@ -138,11 +138,14 @@ proc parseConfig(configFile: string) =
       except:
         echo "Config Error: Invalid background color"
     if panel.hasKey("size"):
-      p.size = int32(panel["size"].getInt())
+      p.size = int32(panel["size"].getFloat())
+      if p.size <= 0:
+        echo "Config Error: Invalid panel size"
     if panel.hasKey("icon_size"):
-      p.iconSize = panel["icon_size"].getInt()
+      p.iconSize = int32(panel["icon_size"].getFloat())
     # Keep icon size smaller than panel size
-    if p.iconSize > p.size:
+    if (p.iconSize <= 0) or (p.iconSize > p.size):
+      echo "Config Error: Invalid icon size"
       p.iconSize = p.size
     if panel.hasKey("scroll_up"):
       p.scrollUpCmd = panel["scroll_up"].getStr()
