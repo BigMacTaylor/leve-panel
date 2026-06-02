@@ -45,7 +45,7 @@ proc newMenuWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int])
   let icon = newMenuIcon()
 
   # Create callbacks
-  let click: CallBack = ("click_l", proc(data: pointer) = onMenuBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onMenuBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

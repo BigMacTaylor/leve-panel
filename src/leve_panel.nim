@@ -97,8 +97,15 @@ type PanelItem = object
   exec: string
   terminal: bool
 
+type Event = enum
+  click_l
+  click_r
+  click_m
+  scroll_up
+  scroll_down
+
 type CallBack = tuple
-  event: string
+  event: Event
   handler: proc(data: pointer)
 
 type CallBacks = seq[CallBack]

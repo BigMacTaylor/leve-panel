@@ -42,7 +42,7 @@ proc newPowerWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]
   let icon = newPowerIcon()
 
   # Create callbacks
-  let click: CallBack = ("click_l", proc(data: pointer) = onPowerBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onPowerBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

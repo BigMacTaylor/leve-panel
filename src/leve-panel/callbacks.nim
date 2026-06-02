@@ -43,7 +43,7 @@ proc pointerHandleButton(
     for widget in widgets:
       if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
         for cb in widget.callBacks:
-          if cb.event == "click_l":
+          if cb.event == Event.click_l:
             echo "clicked"
             cb.handler(addr widget)
             return # Found it, stop looking
@@ -52,7 +52,7 @@ proc pointerHandleButton(
     for widget in widgets:
       if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
         for cb in widget.callBacks:
-          if cb.event == "click_r":
+          if cb.event == Event.click_r:
             echo "clicked"
             cb.handler(addr widget)
             return # Found it, stop looking
@@ -61,7 +61,7 @@ proc pointerHandleButton(
     for widget in widgets:
       if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
         for cb in widget.callBacks:
-          if cb.event == "click_m":
+          if cb.event == Event.click_m:
             echo "clicked"
             cb.handler(addr widget)
             return # Found it, stop looking
@@ -107,7 +107,7 @@ proc pointerHandleScroll(
     for widget in widgets:
       if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
         for cb in widget.callBacks:
-          if cb.event == "scroll_up":
+          if cb.event == Event.scroll_up:
             echo "scroll_up"
             cb.handler(addr widget)
             return # Found it, stop looking
@@ -117,7 +117,7 @@ proc pointerHandleScroll(
     for widget in widgets:
       if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
         for cb in widget.callBacks:
-          if cb.event == "scroll_down":
+          if cb.event == Event.scroll_down:
             echo "scroll_down"
             cb.handler(addr widget)
             return # Found it, stop looking

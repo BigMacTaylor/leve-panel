@@ -188,13 +188,13 @@ proc newVolWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]):
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
-  let click: CallBack = ("click_m", proc(data: pointer) = onVolClick(addr i))
+  let click: CallBack = (Event.click_m, proc(data: pointer) = onVolClick(addr i))
   callBacks.add(click)
-  let mute: CallBack = ("click_l", onMute)
+  let mute: CallBack = (Event.click_l, onMute)
   callBacks.add(mute)
-  let scrollUp: CallBack = ("scroll_up", volUp)
+  let scrollUp: CallBack = (Event.scroll_up, volUp)
   callBacks.add(scrollUp)
-  let scrollDown: CallBack = ("scroll_down", volDown)
+  let scrollDown: CallBack = (Event.scroll_down, volDown)
   callBacks.add(scrollDown)
 
   # Create widget
