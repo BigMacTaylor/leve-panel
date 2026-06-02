@@ -85,14 +85,23 @@ proc pointerHandleLeave(
   #p.pointer.event = Event.leave
   echo "Pointer left surface"
 
+var lastScrollTime = getMonoTime()
+
 # Scroll on Surface
 proc pointerHandleScroll(
     data: pointer, pointer: ptr wl_pointer, time: uint32, axis: uint32, value: wl_fixed
 ) {.cdecl.} =
   echo "Pointer scroll on surface"
-
   echo axis
   echo value
+
+  let now = getMonoTime()
+
+  # Debounce scroll event
+  if now < lastScrollTime + initDuration(milliseconds = 60):
+    if now < lastScrollTime + initDuration(milliseconds = 10):
+      lastScrollTime = now
+    return
 
   if axis == 0 and value == -3840: # scroll up
     for widget in widgets:
@@ -113,6 +122,8 @@ proc pointerHandleScroll(
             cb.handler(addr widget)
             return # Found it, stop looking
     discard execShellCmd(p.scrollDownCmd)
+
+  lastScrollTime = now
 
 # Setup Pointer Listener
 var pointerListener = wlPointerListener(
