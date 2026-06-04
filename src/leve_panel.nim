@@ -90,12 +90,8 @@ type WidgetType = enum
   desktop
 
 type PanelItem = object
-  case widget: WidgetType
-  of desktop:
-    style: Indicator
-  else:
-    discard
-  #widget: WidgetType
+  widget: WidgetType
+  style: Indicator
   icon: string
   exec: string
   terminal: bool

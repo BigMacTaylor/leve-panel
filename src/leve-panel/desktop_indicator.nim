@@ -179,7 +179,7 @@ proc desktopNumbersImg(curWS: string): Image =
   return img
 
 proc desktopNumImg(curWS: string): Image =
-  let img = newImage(p.size * 4, p.size)
+  let img = newImage(p.size, p.size)
   let text = curWS
 
   # Draw Text

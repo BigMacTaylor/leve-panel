@@ -116,23 +116,26 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+      if item.style == num:
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+      else:
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     if item.widget == WidgetType.clock:
+      pos = pos + float32(2 * p.size)
+    elif (item.widget == WidgetType.desktop) and (item.style != num):
+      pos = pos + float32(4 * p.size)
+    else:
       pos = pos + float32(p.size)
-    elif item.widget == WidgetType.desktop:
-      pos = pos + float32(3 * p.size)
-    pos = pos + float32(p.size)
 
   # Get pos for Center Items
   var centerItemsSize = 0
   for item in centerItems:
-    case item.widget
-    of WidgetType.clock:
+    if item.widget == WidgetType.clock:
       centerItemsSize = centerItemsSize + (2 * p.size)
-    of WidgetType.desktop:
+    elif (item.widget == WidgetType.desktop) and (item.style != num):
       centerItemsSize = centerItemsSize + (4 * p.size)
     else:
       centerItemsSize = centerItemsSize + p.size
@@ -154,15 +157,19 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+      if item.style == num:
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+      else:
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     if item.widget == WidgetType.clock:
+      pos = pos + float32(2 * p.size)
+    elif (item.widget == WidgetType.desktop) and (item.style != num):
+      pos = pos + float32(4 * p.size)
+    else:
       pos = pos + float32(p.size)
-    elif item.widget == WidgetType.desktop:
-      pos = pos + float32(3 * p.size)
-    pos = pos + float32(p.size)
 
   # Add Right Widgets
   pos = float32(width - p.size)
@@ -181,8 +188,11 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      pos = pos - float32(3 * p.size)
-      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+      if item.style == num:
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+      else:
+        pos = pos - float32(3 * p.size)
+        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
