@@ -34,6 +34,12 @@ exec_always {
 
 ## Customization
 
+![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_1.png "Leve Panel")
+
+![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_3.png "Leve Panel")
+
+![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_2.png "Leve Panel")
+
 Config file is located in `~/.config/leve-panel/` and is in TOML format. Leve-panel must be restarted for changes to take effect.
 
 Favorite icons should be placed in `~/.config/leve-panel/icons/` .
