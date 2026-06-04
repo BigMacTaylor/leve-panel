@@ -164,20 +164,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
       pos = pos + float32(3 * p.size)
     pos = pos + float32(p.size)
 
-
-
-
-#[
-
-  if p.desktop_indicator != Indicator.none:
-    pos = (width / 2) - float32(2 * p.size)
-    let desktop = newDesktopWidget([int(pos), 0], [int(pos) + (4 * p.size), p.size])
-    #widgets.add(desktop)
-    ctx.drawImage(desktop.img, pos, 0)
-
-]#
-
-
   # Add Right Widgets
   pos = float32(width - p.size)
   for item in rightItems:
@@ -201,10 +187,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     pos = pos - float32(p.size)
-
-  echo "widgets = "
-  for widget in widgets:
-    echo widget.widgetType
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
