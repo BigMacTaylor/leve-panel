@@ -198,7 +198,7 @@ proc newVolWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]):
   callBacks.add(scrollDown)
 
   # Create widget
-  var widget: Widget = Widget(widgetType: WidgetType.volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
 
   return widget
 

@@ -46,12 +46,6 @@ type PanelPos = enum
   left
   right
 
-type Indicator = enum
-  none
-  num
-  numbers
-  dots
-
 type DisplayInfo = ref object
   name: string
   pos_x: int32
@@ -81,7 +75,11 @@ type LevePanel = ref object
   mouse_y: float
   scrollUpCmd: string
   scrollDownCmd: string
-  desktop_indicator: Indicator = Indicator.none
+
+type Indicator = enum
+  num
+  numbers
+  dots
 
 type WidgetType = enum
   favorite
@@ -92,7 +90,12 @@ type WidgetType = enum
   desktop
 
 type PanelItem = object
-  widget: WidgetType
+  case widget: WidgetType
+  of desktop:
+    style: Indicator
+  else:
+    discard
+  #widget: WidgetType
   icon: string
   exec: string
   terminal: bool
@@ -120,6 +123,7 @@ type Widget = ref object
 type imgProc = proc (curWS: string): Image
 
 var leftItems: seq[PanelItem]
+var centerItems: seq[PanelItem]
 var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
 var workspaces: seq[int] = @[]
@@ -311,8 +315,8 @@ proc main() =
   # Setup Timer FD
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
-  #spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
-  spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.1s
+  spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
+  #spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.1s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 
@@ -345,7 +349,7 @@ proc main() =
     discard wl_display_flush(p.display)
 
     # Poll FDs (timeout of -1 means block indefinitely)
-    if poll(addr fds[0], 3, -1) < 0:
+    if poll(addr fds[0], 3, 100) < 0:
       break
 
     # Handle Wayland Events

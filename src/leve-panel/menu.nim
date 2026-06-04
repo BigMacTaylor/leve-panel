@@ -9,7 +9,7 @@ proc onMenuBtn(data: pointer) =
   echo "open menu"
   exec(cast[ptr PanelItem](data))
 
-proc newMenuIcon(): Image =
+proc newMenuImg(): Image =
   let iconSize = if p.iconSize > 24:
     p.iconSize - 2
   else:
@@ -41,14 +41,14 @@ proc newMenuIcon(): Image =
   return img
 
 proc newMenuWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Create icon
-  let icon = newMenuIcon()
+  # Create Menu Image
+  let img = newMenuImg()
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onMenuBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  var widget: Widget = Widget(widgetType: menu, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget

@@ -133,6 +133,6 @@ proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(startPos: startPos, endPos: endPos, img: button, callBacks: callBacks)
+  let widget: Widget = Widget(widgetType: favorite, startPos: startPos, endPos: endPos, img: button, callBacks: callBacks)
 
   return widget

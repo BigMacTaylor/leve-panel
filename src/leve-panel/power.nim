@@ -9,7 +9,7 @@ proc onPowerBtn(data: pointer) =
   echo "power off menu "
   exec(cast[ptr PanelItem](data))
 
-proc newPowerIcon(): Image =
+proc newPowerImg(): Image =
   let iconSize = if p.iconSize > 24:
     p.iconSize - 6
   else:
@@ -38,15 +38,15 @@ proc newPowerIcon(): Image =
   return img
 
 proc newPowerWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Create icon
-  let icon = newPowerIcon()
+  # Create Power Image
+  let img = newPowerImg()
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onPowerBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  var widget: Widget = Widget(widgetType: power, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget
 

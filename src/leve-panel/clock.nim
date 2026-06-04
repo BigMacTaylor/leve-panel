@@ -45,15 +45,15 @@ proc newClockImg(): Image =
   return img
 
 proc newClockWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Create clock Image
-  let clock = newClockImg()
+  # Create Clock Image
+  let img = newClockImg()
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onClock(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(widgetType: WidgetType.clock, startPos: startPos, endPos: endPos, img: clock, callBacks: callBacks)
+  let widget: Widget = Widget(widgetType: clock, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget
 

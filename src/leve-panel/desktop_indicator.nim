@@ -104,6 +104,9 @@ proc initWorkspaces() =
   for workspace in json:
     workspaces.add(parseInt(workspace["name"].getStr()))
 
+# Get initial desktops
+initWorkspaces()
+
 proc getNumWorkspaces(): int =
   var n = 0
   for workspace in workspaces:
@@ -202,23 +205,20 @@ proc desktopNumImg(curWS: string): Image =
 
   return img
 
-proc newDesktopWidget(startPos: array[2, int], endPos: array[2, int]): Widget =
-  # Get initial desktops
-  initWorkspaces()
-
-  # Create volume Image
-  if p.desktop_indicator == Indicator.dots:
+proc newDesktopWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+  # Create Desktop Image
+  if i.style == Indicator.dots:
     newDesktopImg = desktopDotsImg
-  elif p.desktop_indicator == Indicator.numbers:
+  elif i.style == Indicator.numbers:
     newDesktopImg = desktopNumbersImg
   else:
     newDesktopImg = desktopNumImg
 
-  let icon = newDesktopImg(getCurrentWS())
+  let img = newDesktopImg(getCurrentWS())
 
   # Create callbacks
 
   # Create widget
-  var widget: Widget = Widget(widgetType: WidgetType.desktop, startPos: startPos, endPos: endPos, img: icon)
+  var widget: Widget = Widget(widgetType: desktop, startPos: startPos, endPos: endPos, img: img)
 
   return widget

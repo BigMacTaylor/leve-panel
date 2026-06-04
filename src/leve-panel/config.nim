@@ -7,8 +7,11 @@
 
 const defaultConfig =
   """
+# ========================================================================================
+#
 #          Leve Panel Default Config
 #
+# ========================================================================================
 
 # Panel Settings
 [Panel]
@@ -18,12 +21,9 @@ size = 46
 icon_size = 32
 scroll_up = "swaymsg workspace prev"
 scroll_down = "swaymsg workspace next"
-# Valid styles for indicator are
-# "num", "numbers", "dots", and "none"
-desktop_indicator = "dots"
 
-# Favorite Apps
-# Appear left to right
+
+# Widgets appear left to right
 [[Left]]
 widget = "menu"
 exec = "griddle"
@@ -47,8 +47,16 @@ icon = "google-chrome.png"
 exec = "google-chrome"
 terminal = false
 
-# Widgets
-# Appear right to left
+
+# Valid styles for desktop indicator are
+# "num", "numbers", and "dots"
+[[Center]]
+widget = "desktop"
+style = "dots"
+
+
+# Widgets on right side
+# are added from right to left
 [[Right]]
 widget = "power"
 exec = "wlogout"
@@ -113,6 +121,35 @@ proc getFont(): string =
 
 var fontPath = getFont()
 
+proc getItems(items: var seq[PanelItem], elements: seq[TomlValueRef]) =
+  for elem in elements:
+    var item: PanelItem
+    if elem.hasKey("widget"):
+      try:
+        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      except:
+        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
+        continue
+    else: continue
+
+    if item.widget == WidgetType.desktop:
+      if elem.hasKey("style"):
+        try:
+          item.style = parseEnum[Indicator](elem["style"].getStr())
+        except:
+          echo "Config Error: Invalid desktop style \"", elem["style"].getStr(), "\""
+          continue
+      else: continue
+
+    if elem.hasKey("icon"):
+      item.icon = getIconPath(elem["icon"].getStr())
+    if elem.hasKey("exec"):
+      item.exec = elem["exec"].getStr()
+    if elem.hasKey("terminal"):
+      item.terminal = elem["terminal"].getBool()
+
+    items.add(item)
+
 proc parseConfig(configFile: string) =
   echo "Reading config... \n"
 
@@ -123,7 +160,7 @@ proc parseConfig(configFile: string) =
       echo "Error: Failed to parse configuration file"
       return
 
-  # Panel
+  # Get Panel Settings
   if config.hasKey("Panel"):
     let panel = config["Panel"]
     if panel.hasKey("pos"):
@@ -151,52 +188,17 @@ proc parseConfig(configFile: string) =
       p.scrollUpCmd = panel["scroll_up"].getStr()
     if panel.hasKey("scroll_down"):
       p.scrollDownCmd = panel["scroll_down"].getStr()
-    if panel.hasKey("desktop_indicator"):
-      try:
-        p.desktop_indicator = parseEnum[Indicator](panel["desktop_indicator"].getStr())
-      except:
-        echo "Config Error: Invalid indicator style"
 
-  # Left Side
-  let leftElems = config["Left"].getElems()
+  # Get Panel Items from Elements
+  if config.hasKey("Left"):
+    let leftElems = config["Left"].getElems()
+    leftItems.getItems(leftElems)
 
-  for elem in leftElems:
-    var item: PanelItem
-    if elem.hasKey("widget"):
-      try:
-        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
-      except:
-        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
-        continue
-    else: continue
+  if config.hasKey("Center"):
+    let centerElems = config["Center"].getElems()
+    centerItems.getItems(centerElems)
 
-    if elem.hasKey("icon"):
-      item.icon = getIconPath(elem["icon"].getStr())
-    if elem.hasKey("exec"):
-      item.exec = elem["exec"].getStr()
-    if elem.hasKey("terminal"):
-      item.terminal = elem["terminal"].getBool()
+  if config.hasKey("Right"):
+    let rightElems = config["Right"].getElems()
+    rightItems.getItems(rightElems)
 
-    leftItems.add(item)
-
-  # Right Side
-  let rightElems = config["Right"].getElems()
-
-  for elem in rightElems:
-    var item: PanelItem
-    if elem.hasKey("widget"):
-      try:
-        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
-      except:
-        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
-        continue
-    else: continue
-
-    if elem.hasKey("icon"):
-      item.icon = getIconPath(elem["icon"].getStr())
-    if elem.hasKey("exec"):
-      item.exec = elem["exec"].getStr()
-    if elem.hasKey("terminal"):
-      item.terminal = elem["terminal"].getBool()
-
-    rightItems.add(item)

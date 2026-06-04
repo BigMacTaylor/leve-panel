@@ -99,7 +99,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
   if widgets.len > 0:
     widgets = @[]
 
-  # Add favorite buttons
+  # Add Left Widgets
   var pos: float32 = 0
   for item in leftItems:
     var widget: Widget
@@ -116,22 +116,69 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      continue
+      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     if item.widget == WidgetType.clock:
       pos = pos + float32(p.size)
+    elif item.widget == WidgetType.desktop:
+      pos = pos + float32(3 * p.size)
     pos = pos + float32(p.size)
 
-  # Placeholder for switcher
+  # Get pos for Center Items
+  var centerItemsSize = 0
+  for item in centerItems:
+    case item.widget
+    of WidgetType.clock:
+      centerItemsSize = centerItemsSize + (2 * p.size)
+    of WidgetType.desktop:
+      centerItemsSize = centerItemsSize + (4 * p.size)
+    else:
+      centerItemsSize = centerItemsSize + p.size
+
+  pos = (width / 2) - float32(centerItemsSize / 2)
+
+  # Add Center Widgets
+  for item in centerItems:
+    var widget: Widget
+    case item.widget
+    of WidgetType.favorite:
+      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.clock:
+      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
+    of WidgetType.volume:
+      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.menu:
+      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.power:
+      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
+    of WidgetType.desktop:
+      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+
+    widgets.add(widget)
+    ctx.drawImage(widget.img, pos, 0)
+    if item.widget == WidgetType.clock:
+      pos = pos + float32(p.size)
+    elif item.widget == WidgetType.desktop:
+      pos = pos + float32(3 * p.size)
+    pos = pos + float32(p.size)
+
+
+
+
+#[
+
   if p.desktop_indicator != Indicator.none:
     pos = (width / 2) - float32(2 * p.size)
     let desktop = newDesktopWidget([int(pos), 0], [int(pos) + (4 * p.size), p.size])
-    widgets.add(desktop)
+    #widgets.add(desktop)
     ctx.drawImage(desktop.img, pos, 0)
 
-  # Add system tray widgets
+]#
+
+
+  # Add Right Widgets
   pos = float32(width - p.size)
   for item in rightItems:
     var widget: Widget
@@ -148,11 +195,16 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     of WidgetType.power:
       widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
     of WidgetType.desktop:
-      continue
+      pos = pos - float32(3 * p.size)
+      widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
 
     widgets.add(widget)
     ctx.drawImage(widget.img, pos, 0)
     pos = pos - float32(p.size)
+
+  echo "widgets = "
+  for widget in widgets:
+    echo widget.widgetType
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
