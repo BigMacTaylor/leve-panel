@@ -18,7 +18,11 @@ proc onClock(data: pointer) =
   exec(cast[ptr PanelItem](data))
 
 proc newClockImg(): Image =
-  let img = newImage(p.size * 2, p.size)
+  let img = 
+    if p.pos == top or p.pos == bottom:
+      newImage(p.size * 2, p.size)
+    else:
+      newImage(p.size, p.size * 2)
   let text = getTime()
 
   # Draw Text
@@ -44,7 +48,19 @@ proc newClockImg(): Image =
 
   return img
 
-proc newClockWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newClockWidget(i: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + (2 * p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + (2 * p.size)]
+
   # Create Clock Image
   let img = newClockImg()
 

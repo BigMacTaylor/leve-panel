@@ -37,7 +37,19 @@ proc newPowerImg(): Image =
 
   return img
 
-proc newPowerWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newPowerWidget(i: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + int(p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + int(p.size)]
+
   # Create Power Image
   let img = newPowerImg()
 

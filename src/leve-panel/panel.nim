@@ -57,13 +57,68 @@ proc allocate_shm_file(size: csize_t): cint =
   return fd
 
 # ----------------------------------------------------------------------------------------
+#                                    Create Widgets
+# ----------------------------------------------------------------------------------------
+
+proc createWidget(item: PanelItem, pos: float32): Widget =
+  var widget: Widget
+
+  case item.widget
+  of WidgetType.favorite:
+    widget = newFavWidget(item, pos)
+  of WidgetType.clock:
+    widget = newClockWidget(item, pos)
+  of WidgetType.volume:
+    widget = newVolWidget(item, pos)
+  of WidgetType.menu:
+    widget = newMenuWidget(item, pos)
+  of WidgetType.power:
+    widget = newPowerWidget(item, pos)
+  of WidgetType.desktop:
+    widget = newDesktopWidget(item, pos)
+
+  return widget
+
+
+#[
+  else:
+    case item.widget
+    of WidgetType.favorite:
+      widget = newFavWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
+    of WidgetType.clock:
+      widget = newClockWidget(item, [0, int(pos)], [int(p.size), int(pos) + (2 * p.size)])
+    of WidgetType.volume:
+      widget = newVolWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
+    of WidgetType.menu:
+      widget = newMenuWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
+    of WidgetType.power:
+      widget = newPowerWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
+    of WidgetType.desktop:
+      if item.style == num:
+        widget = newDesktopWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
+      else:
+        widget = newDesktopWidget(item, [0, int(pos)], [int(p.size), int(pos) + (4 * p.size)])
+
+]#
+
+
+
+# ----------------------------------------------------------------------------------------
 #                                    Draw Panel
 # ----------------------------------------------------------------------------------------
 
 proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
   echo "Drawing frame"
-  let width = displayInfo.width
-  let height = panel.size
+  let width =
+    if panel.pos == top or panel.pos == bottom:
+      displayInfo.width
+    else:
+      panel.size
+  let height =
+    if panel.pos == top or panel.pos == bottom:
+      panel.size
+    else:
+      displayInfo.height
   let stride = width * 4
   let size = stride * height
 
@@ -102,33 +157,23 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
   # Add Left Widgets
   var pos: float32 = 0
   for item in leftItems:
-    var widget: Widget
-    case item.widget
-    of WidgetType.favorite:
-      # newWidget = (item, startPos, endPos)
-      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.clock:
-      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
-    of WidgetType.volume:
-      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.menu:
-      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.power:
-      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.desktop:
-      if item.style == num:
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-      else:
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+    var widget: Widget = createWidget(item, pos)
 
     widgets.add(widget)
-    ctx.drawImage(widget.img, pos, 0)
+
+    if p.pos == top or p.pos == bottom:
+      ctx.drawImage(widget.img, pos, 0)
+    else:
+      ctx.drawImage(widget.img, 0, pos)
+
     if item.widget == WidgetType.clock:
       pos = pos + float32(2 * p.size)
     elif (item.widget == WidgetType.desktop) and (item.style != num):
       pos = pos + float32(4 * p.size)
     else:
       pos = pos + float32(p.size)
+
+
 
   # Get pos for Center Items
   var centerItemsSize = 0
@@ -140,30 +185,22 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     else:
       centerItemsSize = centerItemsSize + p.size
 
-  pos = (width / 2) - float32(centerItemsSize / 2)
+  if p.pos == top or p.pos == bottom:
+    pos = (width / 2) - float32(centerItemsSize / 2)
+  else:
+    pos = (height / 2) - float32(centerItemsSize / 2)
 
   # Add Center Widgets
   for item in centerItems:
-    var widget: Widget
-    case item.widget
-    of WidgetType.favorite:
-      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.clock:
-      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
-    of WidgetType.volume:
-      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.menu:
-      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.power:
-      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.desktop:
-      if item.style == num:
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-      else:
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+    var widget: Widget = createWidget(item, pos)
 
     widgets.add(widget)
-    ctx.drawImage(widget.img, pos, 0)
+
+    if p.pos == top or p.pos == bottom:
+      ctx.drawImage(widget.img, pos, 0)
+    else:
+      ctx.drawImage(widget.img, 0, pos)
+
     if item.widget == WidgetType.clock:
       pos = pos + float32(2 * p.size)
     elif (item.widget == WidgetType.desktop) and (item.style != num):
@@ -171,31 +208,29 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     else:
       pos = pos + float32(p.size)
 
+
+  # Get pos for Right Items
+  if p.pos == top or p.pos == bottom:
+    pos = float32(width - p.size)
+  else:
+    pos = float32(height - p.size)
+
   # Add Right Widgets
-  pos = float32(width - p.size)
   for item in rightItems:
-    var widget: Widget
-    case item.widget
-    of WidgetType.favorite:
-      widget = newFavWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.clock:
+    if item.widget == WidgetType.clock:
       pos = pos - float32(p.size)
-      widget = newClockWidget(item, [int(pos), 0], [int(pos) + (2 * p.size), p.size])
-    of WidgetType.volume:
-      widget = newVolWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.menu:
-      widget = newMenuWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.power:
-      widget = newPowerWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-    of WidgetType.desktop:
-      if item.style == num:
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + p.size, p.size])
-      else:
-        pos = pos - float32(3 * p.size)
-        widget = newDesktopWidget(item, [int(pos), 0], [int(pos) + (4 * p.size), p.size])
+    elif (item.widget == WidgetType.desktop) and (item.style != num):
+      pos = pos - float32(3 * p.size)
+
+    var widget: Widget = createWidget(item, pos)
 
     widgets.add(widget)
-    ctx.drawImage(widget.img, pos, 0)
+
+    if p.pos == top or p.pos == bottom:
+      ctx.drawImage(widget.img, pos, 0)
+    else:
+      ctx.drawImage(widget.img, 0, pos)
+
     pos = pos - float32(p.size)
 
   # Copy to shared buffer
@@ -216,7 +251,7 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
 
 proc updateWidget(w: ptr Widget) =
   let width = int32(w.endPos[0] - w.startPos[0])
-  let height = p.size
+  let height = int32(w.endPos[1] - w.startPos[1])
 
   # Draw damaged area
   let newImgData = newImage(width, height)
@@ -225,17 +260,33 @@ proc updateWidget(w: ptr Widget) =
   ctx.drawImage(w.img, 0, 0)
 
   # Copy new area to image data
-  var dataPos = w.startPos[0]
+  var dataPos = 0
   var newDataPos = 0
+#[
+  var dataPosWidth: int32
+  if p.pos == top or p.pos == bottom:
+    dataPosWidth = displayInfo.width
+  else:
+    dataPosWidth = p.size
+]#
+  if p.pos == top or p.pos == bottom:
+    dataPos = w.startPos[0]
+    for i in 0 ..< height:
+      copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
+      dataPos = dataPos + displayInfo.width
+      newDataPos = newDataPos + width
+  else:
+    dataPos = w.startPos[1] * width
+    for i in w.startPos[1] ..< w.endPos[1]:
+      copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
+      dataPos = dataPos + width
+      newDataPos = newDataPos + width
 
-  for i in 0 ..< height:
-    copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
-    dataPos = dataPos + displayInfo.width
-    newDataPos = newDataPos + width
+
 
   # Attach and Damage
   p.surface.wl_surface_attach(p.buffer, 0, 0)
-  p.surface.wl_surface_damage(int32(w.startPos[0]), 0, width, height)
+  p.surface.wl_surface_damage(int32(w.startPos[0]), int32(w.startPos[1]), width, height)
 
 # ----------------------------------------------------------------------------------------
 #                                    Configure Surface

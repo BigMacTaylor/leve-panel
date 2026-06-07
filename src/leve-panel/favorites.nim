@@ -88,7 +88,19 @@ proc onFavClick(data: pointer) =
   echo "on click"
   exec(cast[ptr PanelItem](data))
 
-proc newFavWidget(fav: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newFavWidget(fav: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + int(p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + int(p.size)]
+
   let padding = (p.size - p.iconSize) / 2
 
   # Create button

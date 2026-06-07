@@ -205,7 +205,25 @@ proc desktopNumImg(curWS: string): Image =
 
   return img
 
-proc newDesktopWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      if i.style == num:
+        [int(pos) + int(p.size), int(p.size)]
+      else:
+        [int(pos) + (4 * p.size), int(p.size)]
+    else:
+      if i.style == num:
+        [int(p.size), int(pos) + int(p.size)]
+      else:
+        [int(p.size), int(pos) + (4 * p.size)]
+
   # Create Desktop Image
   if i.style == Indicator.dots:
     newDesktopImg = desktopDotsImg

@@ -21,8 +21,8 @@ proc pointerHandleMotion(
   echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
 
 proc isWithin(w: Widget, x, y: int): bool =
-  #if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
-  if x >= w.startPos[0] and x <= w.endPos[0]:
+  if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
+  #if x >= w.startPos[0] and x <= w.endPos[0]:
     echo "Within bounds !"
     return true
 

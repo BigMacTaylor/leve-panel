@@ -40,7 +40,19 @@ proc newMenuImg(): Image =
 
   return img
 
-proc newMenuWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newMenuWidget(i: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + int(p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + int(p.size)]
+
   # Create Menu Image
   let img = newMenuImg()
 

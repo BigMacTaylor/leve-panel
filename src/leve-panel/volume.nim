@@ -57,10 +57,12 @@ cur_vol = getVolume()
 volState = getVolState()
 
 proc newVolImg(): Image =
-  let iconSize = if p.iconSize > 24:
-    p.iconSize - 4
-  else:
-    p.iconSize
+  let iconSize =
+    if p.iconSize > 24:
+      p.iconSize - 4
+    else:
+      p.iconSize
+
   let padding = (p.size - iconSize) / 2
   var iconName: string
 
@@ -182,7 +184,19 @@ proc volDown(data: pointer) =
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
-proc newVolWidget(i: PanelItem, startPos: array[2, int], endPos: array[2, int]): Widget =
+proc newVolWidget(i: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + int(p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + int(p.size)]
+
   # Create volume Image
   let icon = newVolImg()
 

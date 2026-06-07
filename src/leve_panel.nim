@@ -235,7 +235,10 @@ proc main() =
     #destroy(p.display)
     return
 
-  cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
+  if p.pos == top or p.pos == bottom:
+    cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
+  else:
+    cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(p.size), uint32(displayInfo.height))
 
   # Push other windows out of the way
   p.layerSurface.zwlr_layer_surface_v1_set_exclusive_zone(p.size)
