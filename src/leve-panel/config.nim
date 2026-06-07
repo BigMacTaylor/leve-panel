@@ -109,7 +109,10 @@ proc getFont(): string =
 
   echo "Warning: Font not found"
   echo "Using fallback..."
+
   var (output, status) = execCmdEx("""fc-match --format="%{file}" monospace""")
+  if status != 0:
+    quit("Error: Could not find valid font \n")
 
   let path = strip(output)
 

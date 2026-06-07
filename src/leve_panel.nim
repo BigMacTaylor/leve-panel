@@ -6,14 +6,12 @@
 # ========================================================================================
 
 import
-  pkg/nayland/types/protocols/core/[compositor, registry, shm, shm_pool, surface, buffer, output],
+  pkg/nayland/types/protocols/core/[shm_pool],
   pkg/nayland/bindings/protocols/[core, xdg_shell, xdg_decoration_unstable_v1],
-  pkg/nayland/types/protocols/xdg_shell/[wm_base, xdg_surface, xdg_toplevel],
-  pkg/nayland/types/protocols/xdg_decoration/prelude,
-  pkg/nayland/bindings/protocols/[xdg_output_unstable_v1],
   pkg/nayland/bindings/protocols/[wlr_layer_shell_unstable_v1],
-  pkg/nayland/types/protocols/wlr/layer_shell/prelude,
   pkg/nayland/bindings/[libwayland]
+
+import "wayland"/[xdg_output_unstable_v1]
 
 import std/[os, posix, strutils, osproc, times]
 import std/[nativesockets, net, monotimes]
@@ -340,8 +338,6 @@ proc main() =
   # ----------------------------------------------------------------------------------------
 
   while true:
-    echo "\n", "main loop"
-
     # Prepare Wayland
     while prepareRead(p.display) != 0:
       discard dispatchPending(p.display)

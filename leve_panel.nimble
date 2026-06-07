@@ -9,7 +9,7 @@ bin           = @["leve_panel=leve-panel"]
 
 # Dependencies
 requires "nim >= 2.2.4"
-requires "https://github.com/BigMacTaylor/nayland.git"
+requires "https://github.com/nim-windowing/nayland.git"
 requires "subprocess"
 requires "parsetoml"
 requires "pixie"
@@ -18,4 +18,4 @@ requires "pixie"
 foreignDeps  = @["pkg-config", "libwayland-dev", "pulseaudio-utils", "fontconfig"]
 
 task install, "Custom install task":
-  exec "nim c -d:release -d:strip --opt:size --threads:off -o:bin/leve-panel src/leve_panel.nim"
+  exec "nim c -d:release -d:strip --opt:speed --threads:off -o:bin/leve-panel src/leve_panel.nim"

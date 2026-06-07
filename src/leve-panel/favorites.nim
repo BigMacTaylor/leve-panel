@@ -103,12 +103,11 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
 
   let padding = (p.size - p.iconSize) / 2
 
-  # Create button
-  let button = newImage(p.size, p.size)
-
-  var icon: Image
+  # Create Favorite Image
+  let img = newImage(p.size, p.size)
 
   # Load Icon
+  var icon: Image
   if fav.icon.endsWith(".png"):
     icon = try:
       readImage(fav.icon)
@@ -124,7 +123,7 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
       notFoundIcon()
 
 
-    button.draw(
+    img.draw(
       icon,
       translate(vec2(100, 100)) * scale(vec2(0.2, 0.2)) * translate(vec2(-450, -450)),
     )
@@ -138,13 +137,13 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
 
   # Resize Icon
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
-  button.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onFavClick(addr fav))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(widgetType: favorite, startPos: startPos, endPos: endPos, img: button, callBacks: callBacks)
+  let widget: Widget = Widget(widgetType: favorite, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget
