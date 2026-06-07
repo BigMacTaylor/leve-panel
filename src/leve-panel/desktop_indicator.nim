@@ -8,7 +8,6 @@
 import json
 import std/algorithm
 
-
 # Helper to construct a raw Sway IPC message packet
 proc createIpcPacket(msgType: uint32, payload: string): string =
 # Package an IPC command with headers: Magic string, length, and type
@@ -114,7 +113,7 @@ proc getNumWorkspaces(): int =
 
   return n
 
-proc desktopDotsImg(curWS: string): Image =
+proc hDesktopDotsImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
   let centerX: float32 = float32(p.size * 2)
   let numCircles: int = getNumWorkspaces()
@@ -145,7 +144,36 @@ proc desktopDotsImg(curWS: string): Image =
 
   return img
 
-proc desktopNumbersImg(curWS: string): Image =
+proc vDesktopDotsImg(curWS: string): Image =
+  let img = newImage(p.size, p.size * 4)
+  let centerX: float32 = float32(p.size * 2)
+  let numCircles: int = getNumWorkspaces()
+  let radius: int = p.size div 10
+  let color = rgba(255, 255, 255, 255)
+  let ctx = img.newContext()
+  ctx.fillStyle = color
+
+  # Row configuration
+  let gap: int = 10 # Gap between circles
+  let rowHeight: int = (numCircles * radius * 2) + (gap * (numCircles - 1))
+  let startX: float32 = centerX - (rowHeight / 2) + float32(radius)
+
+  var i = 0
+
+  for workspace in workspaces:
+    let posX = p.size / 2
+    let posY = startX + float32(i * (radius * 2 + gap))
+
+    if $workspace == curWS:
+      ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
+    else:
+      ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
+
+    i = i + 1
+
+  return img
+
+proc hDesktopNumbersImg(curWS: string): Image =
   let img = newImage(p.size * 4, p.size)
   var text = ""
 
@@ -174,7 +202,38 @@ proc desktopNumbersImg(curWS: string): Image =
 
   # Draw the text within the specified bounds, centered
   img.fillText(layout, translate(vec2(0, 0)))
-  #clock.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
+
+  return img
+
+proc vDesktopNumbersImg(curWS: string): Image =
+  let img = newImage(p.size, p.size * 4)
+  var text = ""
+
+  for workspace in workspaces:
+    if $workspace == curWS:
+      text = text & "[" & $workspace & "]" & "\n"
+    else:
+      text = text & "\xA0" & $workspace & "\xA0" & "\n"
+
+  # Draw Text
+  let font = try:
+    readFont(fontPath)
+  except:
+    fontPath = getFont()
+    readFont(fontPath)
+  font.size = 15
+  font.paint.color = color(1, 1, 1) # White
+
+  # Center text both horizontally and vertically
+  let layout = font.typeset(
+    text,
+    bounds = vec2(img.width.float, img.height.float),
+    hAlign = CenterAlign,  # Horizontal: Left, Center, Right
+    vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
+  )
+
+  # Draw the text within the specified bounds, centered
+  img.fillText(layout, translate(vec2(0, 0)))
 
   return img
 
@@ -226,9 +285,15 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
 
   # Create Desktop Image
   if i.style == Indicator.dots:
-    newDesktopImg = desktopDotsImg
+    if p.pos == top or p.pos == bottom:
+      newDesktopImg = hDesktopDotsImg
+    else:
+      newDesktopImg = vDesktopDotsImg
   elif i.style == Indicator.numbers:
-    newDesktopImg = desktopNumbersImg
+    if p.pos == top or p.pos == bottom:
+      newDesktopImg = hDesktopNumbersImg
+    else:
+      newDesktopImg = vDesktopNumbersImg
   else:
     newDesktopImg = desktopNumImg
 
