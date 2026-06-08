@@ -79,36 +79,16 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
 
   return widget
 
-
-#[
-  else:
-    case item.widget
-    of WidgetType.favorite:
-      widget = newFavWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
-    of WidgetType.clock:
-      widget = newClockWidget(item, [0, int(pos)], [int(p.size), int(pos) + (2 * p.size)])
-    of WidgetType.volume:
-      widget = newVolWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
-    of WidgetType.menu:
-      widget = newMenuWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
-    of WidgetType.power:
-      widget = newPowerWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
-    of WidgetType.desktop:
-      if item.style == num:
-        widget = newDesktopWidget(item, [0, int(pos)], [int(p.size), int(pos) + int(p.size)])
-      else:
-        widget = newDesktopWidget(item, [0, int(pos)], [int(p.size), int(pos) + (4 * p.size)])
-
-]#
-
-
-
 # ----------------------------------------------------------------------------------------
 #                                    Draw Panel
 # ----------------------------------------------------------------------------------------
 
-proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
-  echo "Drawing frame"
+proc drawPanel(panel: ptr LevePanel): ptr wlBuffer =
+  echo "Drawing panel"
+  if p.pixelData != nil:
+    echo "data unmap"
+    discard munmap(cast[pointer](p.pixelData), p.pixelDataSize)
+
   let width =
     if panel.pos == top or panel.pos == bottom:
       displayInfo.width
@@ -120,21 +100,26 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     else:
       displayInfo.height
   let stride = width * 4
-  let size = stride * height
+  p.pixelDataSize = stride * height
 
   # Allocate Shared Memory (mmap)
-  let fd = allocate_shm_file(csize_t(size))
+  let fd = allocate_shm_file(csize_t(p.pixelDataSize))
   if fd == -1:
     return nil
 
   p.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
-    nil, size, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
+    nil, p.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
   ))
   if cast[int](p.pixelData) == cast[int](MAP_FAILED):
     discard close(fd)
     return nil
 
-  let memPool = panel.shMem.wl_shm_create_pool(int32(fd), size)
+  let memPool = panel.shMem.wl_shm_create_pool(int32(fd), p.pixelDataSize)
+
+  if panel.buffer != nil:
+    echo "buffer destroy"
+    wl_buffer_destroy(panel.buffer)
+
   panel.buffer = memPool.wl_shm_pool_create_buffer(
     #0, cint(width), cint(height), cint(stride), cast[uint32](format_xrgb8888)
     int32(0),
@@ -173,8 +158,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     else:
       pos = pos + float32(p.size)
 
-
-
   # Get pos for Center Items
   var centerItemsSize = 0
   for item in centerItems:
@@ -208,7 +191,6 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
     else:
       pos = pos + float32(p.size)
 
-
   # Get pos for Right Items
   if p.pos == top or p.pos == bottom:
     pos = float32(width - p.size)
@@ -235,12 +217,12 @@ proc drawFrame(panel: ptr LevePanel): ptr wlBuffer =
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
-  copyMem(p.pixelData, panelBG.data[0].addr, size)
+  copyMem(p.pixelData, panelBG.data[0].addr, p.pixelDataSize)
 
   # Cleanup
   wl_shm_pool_destroy(memPool)
   discard close(fd)
-  #discard munmap(cast[pointer](p.pixelData), size)
+  #discard munmap(cast[pointer](p.pixelData), p.pixelDataSize)
 
   discard panel.buffer.wl_buffer_add_listener(addr wl_buffer_listener, nil)
   return cast[ptr wl_buffer](panel.buffer)
@@ -262,13 +244,7 @@ proc updateWidget(w: ptr Widget) =
   # Copy new area to image data
   var dataPos = 0
   var newDataPos = 0
-#[
-  var dataPosWidth: int32
-  if p.pos == top or p.pos == bottom:
-    dataPosWidth = displayInfo.width
-  else:
-    dataPosWidth = p.size
-]#
+
   if p.pos == top or p.pos == bottom:
     dataPos = w.startPos[0]
     for i in 0 ..< height:
@@ -281,8 +257,6 @@ proc updateWidget(w: ptr Widget) =
       copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
       dataPos = dataPos + width
       newDataPos = newDataPos + width
-
-
 
   # Attach and Damage
   p.surface.wl_surface_attach(p.buffer, 0, 0)
@@ -314,12 +288,18 @@ proc configureSurface(
 
   cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
 
-  if p.buffer != nil:
-    #destroy(p.buffer)
+  echo "Configure event"
+
+  if displayInfo.changed == false:
     return
 
+  displayInfo.changed = false
+
+  if p.buffer != nil:
+    echo "Redraw panel"
+
   let panel = cast[ptr LevePanel](data)
-  let buffer = drawFrame(panel)
+  let buffer = drawPanel(panel)
 
   # Attach and Commit
   panel.surface.wl_surface_attach(buffer, int32(0), int32(0))

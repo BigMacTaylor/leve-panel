@@ -24,6 +24,7 @@ proc xdgOutputLogicalSize(
 proc xdgOutputDone(data: pointer, xdgOutput: ptr  zxdgOutputV1) {.cdecl.} =
   let info = cast[DisplayInfo](data)
   echo "XDG Output [", info.name, "] Configuration finalized."
+  info.changed = true
 
 # Initialize listeners
 var xdgOutputListener =  zxdgOutputV1Listener(
@@ -40,4 +41,4 @@ proc bindOutput(output: ptr wl_output, manager: ptr zxdgOutputManagerV1) =
   if xdgOutput == nil:
     echo "Error: Failed to create XDG Output"
 
-  discard xdgOutput.zxdg_output_v1_add_listener(addr xdgOutputListener, cast[pointer]( displayInfo))
+  discard xdgOutput.zxdg_output_v1_add_listener(addr xdgOutputListener, cast[pointer](displayInfo))

@@ -52,6 +52,7 @@ type DisplayInfo = ref object
   width: int32
   height: int32
   scale: int32
+  changed: bool
 
 type LevePanel = ref object
   display: ptr wl_display
@@ -63,6 +64,7 @@ type LevePanel = ref object
   cursor: ptr wp_cursor_shape_device_v1
   compositor: ptr wl_compositor
   pixelData: ptr UncheckedArray[uint32]
+  pixelDataSize: int32
   shMem: ptr wl_shm
   buffer: ptr wl_buffer
   surface: ptr wl_surface
