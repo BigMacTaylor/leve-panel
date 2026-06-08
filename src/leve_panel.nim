@@ -9,6 +9,7 @@ import
   pkg/nayland/types/protocols/core/[shm_pool],
   pkg/nayland/bindings/protocols/[core, xdg_shell, xdg_decoration_unstable_v1],
   pkg/nayland/bindings/protocols/[wlr_layer_shell_unstable_v1],
+  pkg/nayland/bindings/protocols/[cursor_shape_v1, tablet_v2],
   pkg/nayland/bindings/[libwayland]
 
 import "wayland"/[xdg_output_unstable_v1]
@@ -58,6 +59,8 @@ type LevePanel = ref object
   outputMan: ptr zxdgOutputManagerV1
   registry: ptr wl_registry
   seat: ptr wl_seat
+  cursor_manager: ptr wp_cursor_shape_manager_v1
+  cursor: ptr wp_cursor_shape_device_v1
   compositor: ptr wl_compositor
   pixelData: ptr UncheckedArray[uint32]
   shMem: ptr wl_shm
@@ -121,7 +124,7 @@ var centerItems: seq[PanelItem]
 var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
 var workspaces: seq[int] = @[]
-var  displayInfo = DisplayInfo(name: "Unknown")
+var displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 var newDesktopImg: imgProc
 let opts = SubprocessOptions(useStdout: true)
@@ -157,8 +160,10 @@ proc globalRegistry(
     panel.compositor =
       cast[ptr wl_compositor](registry.wl_registry_bind(id, addr wl_compositor_interface, 4))
   elif $(intf) == "wl_seat":
-    panel.seat = cast[ptr  wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 1))
+    panel.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 1))
     #panel.seat.addListener(addr pointerListener, nil)
+  elif $(intf) == "wp_cursor_shape_manager_v1":
+    panel.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
 
 proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32) {.cdecl.} =
   # This space deliberately left blank

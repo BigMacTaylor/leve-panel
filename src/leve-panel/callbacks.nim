@@ -66,7 +66,6 @@ proc pointerHandleButton(
             cb.handler(addr widget)
             return # Found it, stop looking
 
-
 # Enter Surface
 proc pointerHandleEnter(
     data: pointer,
@@ -77,6 +76,12 @@ proc pointerHandleEnter(
     surfaceY: wl_fixed,
 ) {.cdecl.} =
   echo "Pointer entered surface"
+
+  if p.cursor.isNil:
+    echo "Setting cursor shape"
+    p.cursor = p.cursor_manager.wp_cursor_shape_manager_v1_get_pointer(pointer)
+
+  p.cursor.wp_cursor_shape_device_v1_set_shape(serial, wp_cursor_shape_device_v1_shape.WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT.ord)
 
 # Leave Surface
 proc pointerHandleLeave(
