@@ -96,7 +96,7 @@ proc getIconPath(s: string): string =
   if fileExists(icon):
     return icon
   else:
-    echo "Config Error: Invalid icon path \n"
+    echo "Config Error: Invalid icon path"
     return ""
 
 proc getFont(): string =
@@ -117,7 +117,7 @@ proc getFont(): string =
   let path = strip(output)
 
   if fileExists(path):
-    echo path, "\n"
+    echo path
     return path
   else:
     quit("Error: Could not find valid font \n")
@@ -154,7 +154,7 @@ proc getItems(items: var seq[PanelItem], elements: seq[TomlValueRef]) =
     items.add(item)
 
 proc parseConfig(configFile: string) =
-  echo "Reading config... \n"
+  echo "\nReading config... \n"
 
   let config =
     try:

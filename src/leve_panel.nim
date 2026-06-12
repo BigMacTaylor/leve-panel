@@ -135,7 +135,7 @@ setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, menu, power]
-include "leve-panel"/[desktop_indicator, panel, output, callbacks]
+include "leve-panel"/[sway, desktop_indicator, panel, output, callbacks]
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry
@@ -176,7 +176,7 @@ proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32
 # ----------------------------------------------------------------------------------------
 
 proc main() =
-  echo "Starting Leve-Panel...\n"
+  echo "\nStarting Leve-Panel...\n"
 
   # Connect to the Display
   p.display = wl_display_connect(nil)
@@ -272,7 +272,7 @@ proc main() =
   # Get Pointer
   let pointer = wl_seat_get_pointer(p.seat)
   if pointer == nil:
-    echo "Error: Failed to get pointer"
+    echo "Error: Failed to get wayland pointer"
 
   # Add pointer listener
   discard pointer.wl_pointer_add_listener(addr pointerListener, nil)
@@ -284,37 +284,8 @@ proc main() =
   #                                  Setup FDs
   # ----------------------------------------------------------------------------------------
 
-  # Get the Sway Socket Path
-  let socketPath = getEnv("SWAYSOCK")
-  if socketPath.len == 0:
-    echo "Error: SWAYSOCK environment variable not set. Is Sway running?"
-
-  # Create UNIX FD for sway
-  let sway_fd = createNativeSocket(AF_UNIX, SOCK_STREAM, IPPROTO_NONE)
-  if sway_fd == osInvalidSocket:
-    echo "Error: Could not create socket file descriptor."
-    quit(1)
-
-  # Copy socketPath address to sockAddress var
-  var sockAddress: Sockaddr_un
-  sockAddress.sun_family = Domain.AF_UNIX.TSaFamily
-  # Handle string bounds checking safely for the socket struct length
-  let copyLen = min(socketPath.len, sockAddress.sun_path.high)
-  copyMem(addr sockAddress.sun_path[0], addr socketPath[0], copyLen)
-
-  # Connect FD to sockAddress
-  if connect(sway_fd, cast[ptr SockAddr](addr sockAddress), SockLen(sizeof(sockAddress))) != 0:
-    echo "Error: Failed to connect to SWAYSOCK."
-    close(sway_fd)
-
-  # Send the Subscription Payload
-  let payload = """["workspace"]"""
-  let packet = createIpcPacket(IpcTypeSubscribe, payload)
-  
-  let bytesSent = send(sway_fd, addr packet[0], packet.len.int32, 0'i32)
-  if bytesSent < 0:
-    echo "Error: Failed to send subscription payload."
-    close(sway_fd)
+  # Get Wayland FD
+  let wl_fd = wl_display_get_fd(p.display)
 
   # Setup Timer FD
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
@@ -324,13 +295,13 @@ proc main() =
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 
-  # Get Wayland FD
-  let wl_fd = wl_display_get_fd(p.display)
+  # Get Sway FD
+  let sway_fd: cint = getSwayFD()
 
   var fds: array[3, TPollfd]
   fds[0] = TPollfd(fd: wl_fd, events: POLLIN)
   fds[1] = TPollfd(fd: time_fd, events: POLLIN)
-  fds[2] = TPollfd(fd: sway_fd.cint, events: POLLIN)
+  fds[2] = TPollfd(fd: sway_fd, events: POLLIN)
 
   #var buffer = newString(4096)
   var curWS = ""
@@ -338,7 +309,7 @@ proc main() =
   var lastSwayEvent = getMonoTime()
   var volPollTime = getMonoTime()
 
-  echo "Leve-Panel: Clock Running..."
+  echo "\nLeve-Panel: Clock Running... \n"
 
   # ----------------------------------------------------------------------------------------
   #                                  Event Loop
@@ -366,6 +337,7 @@ proc main() =
       var expirations: uint64
       discard read(time_fd, addr expirations, sizeof(expirations))
 
+      echo ""
       echo "Tick: ", now().format("HH:mm:ss")
 
       # Update clock widget
@@ -379,7 +351,7 @@ proc main() =
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
       # Read the 14-Byte Response Header
-      let headerBytes = readExact(sway_fd.cint, 14)
+      let headerBytes = readExact(sway_fd, 14)
 
       # Verify magic string
       if headerBytes[0..5] != "i3-ipc":
@@ -403,9 +375,8 @@ proc main() =
         copyMem(addr replyType, addr headerBytes[10], 4)
 
         # Read JSON Payload
-        let json = readExact(cint(sway_fd), int(replyLen))
+        let json = readExact(sway_fd, int(replyLen))
         curWS = getWsFromJson(json)
-        echo "current ws: ", curWS
         swayEventsReady = true
         lastSwayEvent = getMonoTime()
 
@@ -446,8 +417,6 @@ proc main() =
           p.surface.wl_surface_commit()
 
       volPollTime = getMonoTime()
-
-
 
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)

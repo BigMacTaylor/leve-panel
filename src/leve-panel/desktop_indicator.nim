@@ -5,32 +5,6 @@
 #
 # ========================================================================================
 
-import json
-import std/algorithm
-
-# Helper to construct a raw Sway IPC message packet
-proc createIpcPacket(msgType: uint32, payload: string): string =
-# Package an IPC command with headers: Magic string, length, and type
-  let len = payload.len.int32
-  result = IPC_MAGIC & "\0\0\0\0" & "\x02\0\0\0" # 2 for subscribe
-  # Replace \0\0\0\0 with our actual len (in little endian)
-  result[6] = char(len and 0xFF)
-  result[7] = char((len shr 8) and 0xFF)
-  result[8] = char((len shr 16) and 0xFF)
-  result[9] = char((len shr 24) and 0xFF)
-  result.add(payload)
-
-# Helper to read an exact amount of bytes from the socket
-proc readExact(fd: cint, bytesToRead: int): string =
-  result = newString(bytesToRead)
-  var totalRead = 0
-  while totalRead < bytesToRead:
-    let chunk = read(fd, result[totalRead].addr, bytesToRead - totalRead)
-    if chunk <= 0:
-      echo("Error: Sway connection closed or failed while reading.")
-      break
-    totalRead += chunk
-
 proc getCurrentWS(): string =
   let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
   
@@ -91,20 +65,6 @@ proc getWsFromJson(json: string): string =
       workspaces.delete(idx)
     echo workspaces
     return getCurrentWS()
-
-proc initWorkspaces() =
-  let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
-  
-  if exitCode != 0:
-    echo "Error: Could not connect to sway"
-
-  let json = parseJson(output)
-
-  for workspace in json:
-    workspaces.add(parseInt(workspace["name"].getStr()))
-
-# Get initial desktops
-initWorkspaces()
 
 proc getNumWorkspaces(): int =
   var n = 0

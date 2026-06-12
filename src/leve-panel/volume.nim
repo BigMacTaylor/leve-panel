@@ -20,7 +20,7 @@ proc getMute(): bool =
   var (output, status) = execCmdEx(cmd, options={})
 
   if status != 0:
-    echo "Error getting volume level"
+    echo "Error: Could not get volume level"
     return
 
   # Clean output string
@@ -33,7 +33,7 @@ proc getVolume(): int =
   let (output, status) = execCmdEx(cmd, options={})
 
   if status != 0:
-    echo "Error getting volume level"
+    echo "Error: Could not get volume level"
     return
 
   # Clean output string
