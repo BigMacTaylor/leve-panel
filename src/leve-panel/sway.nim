@@ -5,11 +5,77 @@
 #
 # ========================================================================================
 
-import std/[json, algorithm]
+import std/[json]
 
-proc initWorkspaces() =
+const
+  IpcTypeSubscribe = 2'u32
+  IPC_MAGIC = "i3-ipc"
+
+proc getWsFromJson(json: string): int =
+  # Parse the string into a JSON node
+  let eventNode = try:
+    parseJson(json)
+  except:
+    return getCurrentWS()
+
+  if not eventNode.hasKey("change"):
+    return getCurrentWS()
+
+  # Parse the "change" event
+  let eventType = eventNode["change"].getStr()
+
+  if eventType == "focus":
+    echo "[Sway] Change focus"
+
+    let oldWS = eventNode["old"]["name"].getStr()
+    echo "[Sway] Old ws: ", oldWS
+    let newWS = parseInt(eventNode["current"]["name"].getStr())
+    echo "[Sway] New ws: ", newWS
+
+    for workspace in workspaces.mitems:
+      if workspace.num == newWS:
+        workspace.state = workspace.state + {active}
+      else:
+        workspace.state.excl(active)
+
+    return newWS
+
+  elif eventType == "init":
+    let newWS = parseInt(eventNode["current"]["name"].getStr())
+    echo "[Sway] Init ws: ", newWS
+
+    var wsData: WorkspaceData
+    wsData.num = newWS
+
+    for i in 0 ..< workspaces.len:
+      if newWS < workspaces[i].num:
+        workspaces.insert(wsData, i)
+        return getCurrentWS()
+
+#[
+    # TODO fix always false?
+    let focus = eventNode["current"]["focused"].getbool()
+    echo "init ws focus ", focus
+
+    if focus:
+      return newWS
+    else:
+      echo parseJson(json)
+      return getCurrentWS()
+]#
+
+  elif eventType == "empty":
+    let curWS = parseInt(eventNode["current"]["name"].getStr())
+    echo "[Sway] Remove ws: ", curWS
+
+    for i in 0 ..< workspaces.len:
+      if workspaces[i].num == curWS:
+        workspaces.delete(i)
+        return getCurrentWS()
+
+proc initSwayWorkspaces() =
   let (output, exitCode) = execCmdEx("swaymsg -t get_workspaces")
-  
+
   if exitCode != 0:
     echo "Error: Could not connect to sway"
     return
@@ -21,7 +87,12 @@ proc initWorkspaces() =
     return
 
   for workspace in json:
-    workspaces.add(parseInt(workspace["name"].getStr()))
+    var wsData: WorkspaceData
+    wsData.num = parseInt(workspace["name"].getStr())
+    # Find focused workspace
+    if workspace["focused"].getBool():
+      wsData.state = wsData.state + {active}
+    workspaces.add(wsData)
 
 # Helper to construct a raw Sway IPC message packet
 proc createIpcPacket(msgType: uint32, payload: string): string =
@@ -83,6 +154,6 @@ proc getSwayFD(): cint =
     return -1
 
   # Get initial desktops
-  initWorkspaces()
+  initSwayWorkspaces()
 
   return cint(sway_fd)

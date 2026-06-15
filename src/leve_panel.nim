@@ -13,6 +13,7 @@ import
   pkg/nayland/bindings/[libwayland]
 
 import "wayland"/[xdg_output_unstable_v1]
+import "wayland"/[ext_workspace_v1]
 
 import std/[os, posix, strutils, osproc, times]
 import std/[nativesockets, net, monotimes]
@@ -35,10 +36,6 @@ proc timerfd_settime(
   fd: cint, flags: cint, newVal: ptr ITimerspec, oldVal: ptr ITimerspec
 ): cint {.importc, header: "<sys/timerfd.h>".}
 
-const
-  IpcTypeSubscribe = 2'u32
-  IPC_MAGIC = "i3-ipc"
-
 type PanelPos = enum
   top
   bottom
@@ -60,6 +57,7 @@ type LevePanel = ref object
   outputMan: ptr zxdgOutputManagerV1
   registry: ptr wl_registry
   seat: ptr wl_seat
+  ws_manager: ptr ext_workspace_manager_v1
   cursor_manager: ptr wp_cursor_shape_manager_v1
   cursor: ptr wp_cursor_shape_device_v1
   compositor: ptr wl_compositor
@@ -119,13 +117,26 @@ type Widget = ref object
   img: Image
   callBacks: CallBacks
 
-type imgProc = proc (curWS: string): Image
+type WsFlag = enum
+  active
+  urgent
+  hidden
+
+type WsFlags = set[WsFlag]
+
+type WorkspaceData = object
+  handle: ptr ext_workspace_handle_v1
+  num: int
+  name: string
+  state: WsFlags
+
+type imgProc = proc (curWS: int): Image
 
 var leftItems: seq[PanelItem]
 var centerItems: seq[PanelItem]
 var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
-var workspaces: seq[int] = @[]
+var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
 var newDesktopImg: imgProc
@@ -135,7 +146,7 @@ setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, menu, power]
-include "leve-panel"/[sway, desktop_indicator, panel, output, callbacks]
+include "leve-panel"/[workspaces, sway, desktop_indicator, panel, output, callbacks]
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry
@@ -166,6 +177,9 @@ proc globalRegistry(
     #panel.seat.addListener(addr pointerListener, nil)
   elif $(intf) == "wp_cursor_shape_manager_v1":
     panel.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
+  elif $(intf) == "ext_workspace_manager_v1":
+    panel.ws_manager = cast[ptr ext_workspace_manager_v1](registry.wl_registry_bind(id, addr ext_workspace_manager_v1_interface, 1))
+    discard panel.ws_manager.ext_workspace_manager_v1_add_listener(addr managerListener, nil)
 
 proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32) {.cdecl.} =
   # This space deliberately left blank
@@ -194,8 +208,8 @@ proc main() =
   # Add registry listener
   let registry_listener =
     wlRegistryListener(global: globalRegistry, global_remove: removeGlobalRegistry)
-  discard cast[ptr wl_registry](p.registry).wl_registry_add_listener(addr registry_listener, addr p)
-  #discard wl_registry_add_listener(handle, listeners.addr, cast[ptr RegistryObj](reg))
+  discard p.registry.wl_registry_add_listener(addr registry_listener, addr p)
+
   if p.display == nil:
     echo "Error: Failed to connect to Wayland display"
 
@@ -295,7 +309,7 @@ proc main() =
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 
-  # Get Sway FD
+  # Get Sway FD, returns -1 if not running
   let sway_fd: cint = getSwayFD()
 
   var fds: array[3, TPollfd]
@@ -304,7 +318,7 @@ proc main() =
   fds[2] = TPollfd(fd: sway_fd, events: POLLIN)
 
   #var buffer = newString(4096)
-  var curWS = ""
+  var curWS = 0
   var swayEventsReady = false
   var lastSwayEvent = getMonoTime()
   var volPollTime = getMonoTime()
@@ -322,7 +336,7 @@ proc main() =
     discard wl_display_flush(p.display)
 
     # Poll FDs (timeout of -1 means block indefinitely)
-    if poll(addr fds[0], 3, 100) < 0:
+    if poll(addr fds[0], 3, 60) < 0: # 100
       break
 
     # Handle Wayland Events
@@ -356,16 +370,7 @@ proc main() =
       # Verify magic string
       if headerBytes[0..5] != "i3-ipc":
         echo("Error: Invalid IPC magic string received.")
-        #let bytesRead = recv(sway_fd, addr buffer[0], buffer.len.int32, 0'i32)
-        #if bytesRead <= 0:
-          #echo "Sway IPC disconnected or read error encountered."
       else:
-        # Substring the buffer to isolate what arrived
-        #let rawData = buffer[0 ..< bytesRead]
-        #if rawData.len > 14:
-          #echo "data > 14"
-        #let jsonPayload = rawData[14 .. ^1]
-
         # Get payload length from bytes 6 to 9 (Little Endian)
         var replyLen: uint32
         copyMem(addr replyLen, addr headerBytes[6], 4)
@@ -383,7 +388,7 @@ proc main() =
     # Check if Sway Events are ready
     if swayEventsReady:
       let now = getMonoTime()
-      let threshold = initDuration(milliseconds = 10)
+      let threshold = initDuration(milliseconds = 4) # 10
       # Update desktop indicator widget
       if now > lastSwayEvent + threshold:
         for widget in widgets:

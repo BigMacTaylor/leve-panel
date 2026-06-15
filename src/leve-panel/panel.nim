@@ -84,7 +84,7 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
 # ----------------------------------------------------------------------------------------
 
 proc drawPanel(panel: ptr LevePanel): ptr wlBuffer =
-  echo "Drawing panel"
+  echo "Drawing panel..."
   if p.pixelData != nil:
     echo "data unmap"
     discard munmap(cast[pointer](p.pixelData), p.pixelDataSize)
@@ -288,7 +288,7 @@ proc configureSurface(
 
   cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
 
-  echo "Configure event"
+  echo "[Surface] Configure event"
 
   if displayInfo.changed == false:
     return

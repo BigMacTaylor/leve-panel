@@ -11,7 +11,7 @@ proc xdgOutputLogicalPos(
   let info = cast[DisplayInfo](data)
   info.pos_x = width
   info.pos_y = height
-  echo "XDG Output [", info.name, "] Logical Pos: ", width, "x", height
+  echo "[Output] \'", info.name, "\' Logical Pos: ", width, "x", height
 
 proc xdgOutputLogicalSize(
     data: pointer, xdgOutput: ptr  zxdgOutputV1, width: int32, height: int32
@@ -19,11 +19,11 @@ proc xdgOutputLogicalSize(
   let info = cast[DisplayInfo](data)
   info.width = width
   info.height = height
-  echo "XDG Output [", info.name, "] Logical Size: ", width, "x", height
+  echo "[Output] \'", info.name, "\' Logical Size: ", width, "x", height
 
 proc xdgOutputDone(data: pointer, xdgOutput: ptr  zxdgOutputV1) {.cdecl.} =
   let info = cast[DisplayInfo](data)
-  echo "XDG Output [", info.name, "] Configuration finalized."
+  echo "[Output] \'", info.name, "\' Configuration finalized."
   info.changed = true
 
 # Initialize listeners

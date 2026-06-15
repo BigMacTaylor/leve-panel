@@ -103,8 +103,8 @@ proc pointerHandleScroll(
   let now = getMonoTime()
 
   # Debounce scroll event
-  if now < lastScrollTime + initDuration(milliseconds = 60):
-    if now < lastScrollTime + initDuration(milliseconds = 10):
+  if now < lastScrollTime + initDuration(milliseconds = 60): # 60
+    if now < lastScrollTime + initDuration(milliseconds = 10): # 10
       lastScrollTime = now
     return
 
