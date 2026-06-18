@@ -47,10 +47,19 @@ proc getWsFromJson(json: string): int =
     var wsData: WorkspaceData
     wsData.num = newWS
 
-    for i in 0 ..< workspaces.len:
-      if newWS < workspaces[i].num:
-        workspaces.insert(wsData, i)
-        return getCurrentWS()
+    var low = 0
+    var high = workspaces.len
+
+    # Find lower bound of workspaces
+    while low < high:
+      let mid = low + (high - low) div 2
+      if workspaces[mid].num < newWS:
+        low = mid + 1
+      else:
+        high = mid
+
+    workspaces.insert(wsData, low)
+    return getCurrentWS()
 
 #[
     # TODO fix always false?
