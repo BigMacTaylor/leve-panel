@@ -319,9 +319,8 @@ proc main() =
 
   #var buffer = newString(4096)
   var curWS = 0
+  var timeOut: cint = -1
   var swayEventsReady = false
-  var lastSwayEvent = getMonoTime()
-  var volPollTime = getMonoTime()
 
   echo "\nLeve-Panel: Clock Running... \n"
 
@@ -336,7 +335,7 @@ proc main() =
     discard wl_display_flush(p.display)
 
     # Poll FDs (timeout of -1 means block indefinitely)
-    if poll(addr fds[0], 3, 60) < 0: # 100
+    if poll(addr fds[0], 3, timeOut) < 0:
       break
 
     # Handle Wayland Events
@@ -346,7 +345,7 @@ proc main() =
     else:
       cancel_read(p.display)
 
-    # Clock widget
+    # Handle timer
     if (fds[1].revents and POLLIN) != 0:
       var expirations: uint64
       discard read(time_fd, addr expirations, sizeof(expirations))
@@ -354,13 +353,34 @@ proc main() =
       echo ""
       echo "Tick: ", now().format("HH:mm:ss")
 
-      # Update clock widget
+      # Update Clock widget
       if now().second == 0:
         for widget in widgets:
           if widget.widgetType == WidgetType.clock:
             widget.img = newClockImg()
             updateWidget(addr widget)
         p.surface.wl_surface_commit()
+
+      # Check pipe data
+      if not volProcess.hasDataStdout():
+        echo "outputPipe: no data"
+      else:
+        # Update volume state
+        cur_vol = getVolume()
+        volMute = getMute()
+
+        # Read all content to "clear" it from buffer
+        discard volProcess.readStdout()
+
+        # Check widget state
+        if volState != getVolState():
+          # Update Volume widget
+          volState = getVolState()
+          for widget in widgets:
+            if widget.widgetType == WidgetType.volume:
+              widget.img = newVolImg()
+              updateWidget(addr widget)
+          p.surface.wl_surface_commit()
 
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
@@ -383,45 +403,19 @@ proc main() =
         let json = readExact(sway_fd, int(replyLen))
         curWS = getWsFromJson(json)
         swayEventsReady = true
-        lastSwayEvent = getMonoTime()
+        timeOut = 5
+        continue
 
     # Check if Sway Events are ready
     if swayEventsReady:
-      let now = getMonoTime()
-      let threshold = initDuration(milliseconds = 4) # 10
       # Update desktop indicator widget
-      if now > lastSwayEvent + threshold:
-        for widget in widgets:
-          if widget.widgetType == WidgetType.desktop:
-            widget.img = newDesktopImg(curWS)
-            updateWidget(addr widget)
-        p.surface.wl_surface_commit()
-        swayEventsReady = false
-
-    # Volume widget
-    if getMonoTime() > volPollTime + initDuration(milliseconds = 1000):
-      if not volProcess.hasDataStdout():
-        echo "outputPipe: no data"
-      else:
-        echo "Update volume state"
-        # Update volume state
-        cur_vol = getVolume()
-        volMute = getMute()
-
-        # Read all content to "clear" it from buffer
-        discard volProcess.readStdout()
-
-        # Check widget state
-        if volState != getVolState():
-          # Update widget
-          volState = getVolState()
-          for widget in widgets:
-            if widget.widgetType == WidgetType.volume:
-              widget.img = newVolImg()
-              updateWidget(addr widget)
-          p.surface.wl_surface_commit()
-
-      volPollTime = getMonoTime()
+      for widget in widgets:
+        if widget.widgetType == WidgetType.desktop:
+          widget.img = newDesktopImg(curWS)
+          updateWidget(addr widget)
+      p.surface.wl_surface_commit()
+      swayEventsReady = false
+      timeOut = -1
 
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)
