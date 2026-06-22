@@ -362,12 +362,10 @@ proc main() =
         p.surface.wl_surface_commit()
 
       # Check pipe data
-      if not volProcess.hasDataStdout():
-        echo "outputPipe: no data"
-      else:
-        # Update volume state
-        cur_vol = getVolume()
+      if volProcess.hasDataStdout():
+        echo "Update volume state"
         volMute = getMute()
+        cur_vol = getVolume()
 
         # Read all content to "clear" it from buffer
         discard volProcess.readStdout()

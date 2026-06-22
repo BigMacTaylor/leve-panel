@@ -17,22 +17,30 @@ var volState = VolState.high
 
 proc getMute(): bool =
   let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
-  var (output, status) = execCmdEx(cmd, options={})
+  let (output, status) = execCmdEx(cmd, options={poStdErrToStdOut})
 
   if status != 0:
-    echo "Error: Could not get volume level"
+    echo "Error: Could not get mute status"
+    return
+
+  if not output.startsWith("Volume"):
+    echo "Error: Could not get mute status"
     return
 
   # Clean output string
-  var s = output.strip()
+  let s = output.strip()
   let isMuted = s.endsWith("[MUTED]")
   return isMuted
 
 proc getVolume(): int =
   let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
-  let (output, status) = execCmdEx(cmd, options={})
+  let (output, status) = execCmdEx(cmd, options={poStdErrToStdOut})
 
   if status != 0:
+    echo "Error: Could not get volume level"
+    return
+
+  if not output.startsWith("Volume"):
     echo "Error: Could not get volume level"
     return
 
