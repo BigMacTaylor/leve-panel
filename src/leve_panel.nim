@@ -77,6 +77,12 @@ type LevePanel = ref object
   scrollUpCmd: string
   scrollDownCmd: string
 
+type VolState = enum
+  mute
+  low
+  med
+  high
+
 type Indicator = enum
   num
   numbers
@@ -132,6 +138,7 @@ type WorkspaceData = object
 
 type imgProc = proc (curWS: int): Image
 
+var newDesktopImg: imgProc
 var leftItems: seq[PanelItem]
 var centerItems: seq[PanelItem]
 var rightItems: seq[PanelItem]
@@ -139,9 +146,6 @@ var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
 var p = LevePanel()
-var newDesktopImg: imgProc
-let opts = SubprocessOptions(useStdout: true)
-let volProcess = startSubprocess("pactl", ["subscribe"], opts)
 setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)

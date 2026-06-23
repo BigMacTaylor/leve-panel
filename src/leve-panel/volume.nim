@@ -5,50 +5,57 @@
 #
 # ========================================================================================
 
-type VolState = enum
-  mute
-  low
-  med
-  high
-
 var volMute = false
 var cur_vol = 100
 var volState = VolState.high
 
+let opts = SubprocessOptions(useStdout: true)
+let volProcess = startSubprocess("pactl", ["subscribe"], opts)
+
+proc getSinkStatus(): bool =
+  let cmd = "pactl get-sink-volume @DEFAULT_SINK@ > /dev/null 2>&1"
+  let status = execCmd(cmd)
+
+  if status == 0:
+    return true
+  else:
+    echo "Error: Could not get sink status."
+    echo "Is pulse-audio running?"
+    volProcess.close()
+    return false
+
 proc getMute(): bool =
-  let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
-  let (output, status) = execCmdEx(cmd, options={poStdErrToStdOut})
+  #let cmd = """amixer get Master | grep -q "\[off\]" && echo "Muted" || echo "Unmuted" """
+  let cmd = """pactl get-sink-mute @DEFAULT_SINK@ | grep -oP 'Mute: \K.*' """
+  let (output, status) = execCmdEx(cmd)
 
   if status != 0:
     echo "Error: Could not get mute status"
-    return
+    return false
 
-  if not output.startsWith("Volume"):
+  if output.strip() == "yes":
+    return true
+  elif output.strip() == "no":
+    return false
+  else:
     echo "Error: Could not get mute status"
-    return
-
-  # Clean output string
-  let s = output.strip()
-  let isMuted = s.endsWith("[MUTED]")
-  return isMuted
+    return false
 
 proc getVolume(): int =
-  let cmd = "wpctl get-volume @DEFAULT_AUDIO_SINK@"
-  let (output, status) = execCmdEx(cmd, options={poStdErrToStdOut})
+  #let cmd = "amixer get Master | awk -F'[][]' '/Left:/ { print $2 }' | tr -d '%'"
+  let cmd = """pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '\d+(?=%)' | head -n 1 """
+  let (output, status) = execCmdEx(cmd)
 
   if status != 0:
     echo "Error: Could not get volume level"
-    return
+    return 100
 
-  if not output.startsWith("Volume"):
-    echo "Error: Could not get volume level"
-    return
-
-  # Clean output string
-  let s = output.splitWhitespace()[1] # Get "1.0"
-  let f = parseFloat(s)
-
-  return toInt(f * 100)
+  return
+    try: 
+      parseInt(output.strip)
+    except:
+      echo "Error: Could not get volume level"
+      100
 
 proc getVolState(): VolState =
   if cur_vol <= 0 or volMute:
@@ -60,9 +67,10 @@ proc getVolState(): VolState =
   else: # cur_vol > 75
     return VolState.high
 
-volMute = getMute()
-cur_vol = getVolume()
-volState = getVolState()
+if getSinkStatus():
+  volMute = getMute()
+  cur_vol = getVolume()
+  volState = getVolState()
 
 proc newVolImg(): Image =
   let iconSize =
@@ -111,8 +119,7 @@ proc onVolClick(data: pointer) =
 
 proc onMute(data: pointer) =
   echo "on mute"
-  echo "volume ", getVolume()
-  let cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ "
+  let cmd = "pactl set-sink-mute @DEFAULT_SINK@ "
 
   if volMute:
     volMute = false
@@ -129,15 +136,14 @@ proc onMute(data: pointer) =
   p.surface.wl_surface_commit()
 
 proc volUp(data: pointer) =
-  echo "vol up"
-  echo "volume ", getVolume()
+  echo "volume up"
   let curVolState = volState
 
   # Check bounds
   if cur_vol >= 100 and not volMute:
     return
 
-  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ "
+  let cmd = "pactl set-sink-volume @DEFAULT_SINK@ "
 
   # Change current volume level
   if cur_vol < 95:
@@ -151,7 +157,7 @@ proc volUp(data: pointer) =
   #if cur_vol <= 0 or volMute:
   if volMute:
     volMute = false
-    let muteCmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ "
+    let muteCmd = "pactl set-sink-mute @DEFAULT_SINK@ "
     discard execShellCmd(muteCmd & "0")
   echo "mute state ", volMute
 
@@ -165,15 +171,14 @@ proc volUp(data: pointer) =
   p.surface.wl_surface_commit()
 
 proc volDown(data: pointer) =
-  echo "vol down"
-  echo "volume ", getVolume()
+  echo "volume down"
   let curVolState = volState
 
   # Check bounds
   if cur_vol <= 0:
     return
 
-  let cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ "
+  let cmd = "pactl set-sink-volume @DEFAULT_SINK@ "
 
   # Change current volume level
   if cur_vol > 5:
@@ -223,13 +228,3 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
   var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
 
   return widget
-
-
-
-
-
-
-
-
-
-
