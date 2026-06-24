@@ -109,19 +109,20 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
   # Load Icon
   var icon: Image
   if fav.icon.endsWith(".png"):
+    echo "Load icon: ", fav.icon
     icon = try:
       readImage(fav.icon)
     except:
       echo "Error: Icon not found"
       notFoundIcon()
   elif fav.icon.endsWith(".svg"):
+    echo "Load icon: ", fav.icon
     echo "svg block"
     icon = try:
       readImage(fav.icon)
     except:
       echo "Error: Icon not found"
       notFoundIcon()
-
 
     img.draw(
       icon,
@@ -130,7 +131,6 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
   else:
     echo "Error: Icon not found"
     icon = notFoundIcon()
-
 
   # Remove whitespace 
   icon = icon.trimWhiteSpace()

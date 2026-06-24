@@ -84,7 +84,7 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
 # ----------------------------------------------------------------------------------------
 
 proc drawPanel(panel: ptr LevePanel): ptr wlBuffer =
-  echo "Drawing panel..."
+  echo "\nDrawing panel... \n"
   if p.pixelData != nil:
     echo "data unmap"
     discard munmap(cast[pointer](p.pixelData), p.pixelDataSize)

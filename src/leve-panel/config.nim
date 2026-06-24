@@ -100,7 +100,14 @@ proc getIconPath(s: string): string =
     return ""
 
 proc getFont(): string =
-  let dir = getConfigDir() / "font"
+  var dir = getConfigDir() / "font"
+  for kind, path in walkDir(dir):
+    if kind == pcFile:
+      let (_, _, ext) = splitFile(path)
+      if ext == ".ttf":
+        return path
+
+  dir = "/usr/share/leve-panel/font"
   for kind, path in walkDir(dir):
     if kind == pcFile:
       let (_, _, ext) = splitFile(path)
