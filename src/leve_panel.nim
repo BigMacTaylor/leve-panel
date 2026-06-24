@@ -22,13 +22,13 @@ import parsetoml
 import pixie
 
 proc prepare_read*(display: ptr wl_display): cint {.
-    importc: "wl_display_prepare_read", dynlib: "libwayland-client.so".}
+    importc: "wl_display_prepare_read", dynlib: "libwayland-client.so.0".}
 proc dispatch_pending*(display: ptr wl_display): cint {.
-    importc: "wl_display_dispatch_pending", dynlib: "libwayland-client.so".}
+    importc: "wl_display_dispatch_pending", dynlib: "libwayland-client.so.0".}
 proc read_events*(display: ptr wl_display): cint {.
-    importc: "wl_display_read_events", dynlib: "libwayland-client.so".}
+    importc: "wl_display_read_events", dynlib: "libwayland-client.so.0".}
 proc cancel_read*(display: ptr wl_display) {.importc: "wl_display_cancel_read",
-    dynlib: "libwayland-client.so".}
+    dynlib: "libwayland-client.so.0".}
 
 # Import system calls
 proc timerfd_create(clockid, flags: cint): cint {.importc, header: "<sys/timerfd.h>".}
@@ -243,6 +243,14 @@ proc main() =
     #destroy(p.display)
     return
 
+  if p.layerShell == nil:
+    echo "Error: Failed to create layer shell"
+    echo "Are you running Gnome?... yuck!\n"
+    wl_surface_destroy(p.surface)
+    wl_registry_destroy(p.registry)
+    #destroy(p.display)
+    return
+
   # Add surface to layer
   p.layerSurface = cast[ptr zwlr_layer_surface_v1](zwlr_layer_shell_v1_get_layer_surface(
     cast[ptr zwlr_layer_shell_v1](p.layerShell),
@@ -251,6 +259,7 @@ proc main() =
     cast[uint32](top),
     cstring("leve-panel"),
   ))
+
   if p.layerSurface == nil:
     echo "Error: Failed to create layer surface"
     wl_surface_destroy(p.surface)
