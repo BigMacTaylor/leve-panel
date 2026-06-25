@@ -7,21 +7,26 @@
 
 var volMute = false
 var cur_vol = 100
-var volState = VolState.high
+var volState = VolState.mute
 
 let opts = SubprocessOptions(useStdout: true)
 let volProcess = startSubprocess("pactl", ["subscribe"], opts)
 
 proc getSinkStatus(): bool =
-  let cmd = "pactl get-sink-volume @DEFAULT_SINK@ > /dev/null 2>&1"
-  let status = execCmd(cmd)
+  let cmd = "pactl get-sink-volume @DEFAULT_SINK@ > /dev/null"
+  var p = startProcess(cmd, options = {poEvalCommand, poParentStreams})
+
+  # return exit code, or -1 if timeout is reached
+  let status = p.waitForExit(1000)
+
+  if p.running():
+    p.terminate() # p.kill()
+
+  p.close()
 
   if status == 0:
     return true
   else:
-    echo "Error: Could not get sink status."
-    echo "Is pulse-audio running?"
-    volProcess.close()
     return false
 
 proc getMute(): bool =
@@ -33,9 +38,9 @@ proc getMute(): bool =
     echo "Error: Could not get mute status"
     return false
 
-  if output.strip() == "yes":
+  if output.strip() == "yes": # "Muted"
     return true
-  elif output.strip() == "no":
+  elif output.strip() == "no": # "Unmuted"
     return false
   else:
     echo "Error: Could not get mute status"
@@ -67,10 +72,19 @@ proc getVolState(): VolState =
   else: # cur_vol > 75
     return VolState.high
 
+echo "\nGetting volume status... \n"
 if getSinkStatus():
   volMute = getMute()
   cur_vol = getVolume()
   volState = getVolState()
+else:
+  volProcess.close()
+  echo "\nError: Could not get sink status."
+  echo "Is pulse-audio running?"
+
+# ----------------------------------------------------------------------------------------
+#                                    Create Image
+# ----------------------------------------------------------------------------------------
 
 proc newVolImg(): Image =
   let iconSize =
@@ -112,6 +126,10 @@ proc newVolImg(): Image =
   img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
   return img
+
+# ----------------------------------------------------------------------------------------
+#                                    Callbacks
+# ----------------------------------------------------------------------------------------
 
 proc onVolClick(data: pointer) =
   echo "open volume control"
@@ -197,6 +215,10 @@ proc volDown(data: pointer) =
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
+# ----------------------------------------------------------------------------------------
+#                                    Create Widget
+# ----------------------------------------------------------------------------------------
+
 proc newVolWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
@@ -215,14 +237,15 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
-  let click: CallBack = (Event.click_m, proc(data: pointer) = onVolClick(addr i))
-  callBacks.add(click)
-  let mute: CallBack = (Event.click_l, onMute)
-  callBacks.add(mute)
-  let scrollUp: CallBack = (Event.scroll_up, volUp)
-  callBacks.add(scrollUp)
-  let scrollDown: CallBack = (Event.scroll_down, volDown)
-  callBacks.add(scrollDown)
+  if getSinkStatus():
+    let click: CallBack = (Event.click_m, proc(data: pointer) = onVolClick(addr i))
+    callBacks.add(click)
+    let mute: CallBack = (Event.click_l, onMute)
+    callBacks.add(mute)
+    let scrollUp: CallBack = (Event.scroll_up, volUp)
+    callBacks.add(scrollUp)
+    let scrollDown: CallBack = (Event.scroll_down, volDown)
+    callBacks.add(scrollDown)
 
   # Create widget
   var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
