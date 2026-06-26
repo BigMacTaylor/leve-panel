@@ -14,6 +14,14 @@ Download the `.deb` file from the [releases page](https://github.com/BigMacTaylo
 sudo apt install ./leve-panel_*.deb
 ```
 
+### Fedora
+
+Download the `.rpm` file from the [releases page](https://github.com/BigMacTaylor/leve-panel/releases) and
+
+```bash
+sudo dnf install ./leve-panel*.rpm
+```
+
 ## Dependencies
 
 - libwayland-dev
