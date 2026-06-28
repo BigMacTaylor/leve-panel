@@ -23,7 +23,7 @@ proc xdgOutputLogicalSize(
 
 proc xdgOutputDone(data: pointer, xdgOutput: ptr  zxdgOutputV1) {.cdecl.} =
   let info = cast[DisplayInfo](data)
-  echo "[Output] \'", info.name, "\' Configuration finalized."
+  echo "[Output] \'", info.name, "\' Configuration finalized. \n"
   info.changed = true
 
 # Initialize listeners

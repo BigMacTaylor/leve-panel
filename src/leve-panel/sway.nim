@@ -133,6 +133,26 @@ proc getSwayFD(): cint =
     echo "Warning: SWAYSOCK environment variable not set. Is Sway running?"
     return -1
 
+  # Get Sway Version Number
+  let (output, exitCode) = execCmdEx("sway -v")
+  if exitCode != 0:
+    echo "Error: Could not get Sway version number"
+    return -1
+
+  # Split by space and grab the last part (the "1.11")
+  let parts = output.split(' ')
+  let verString = parts[^1]
+
+  let version = try:
+    parseFloat(verString.strip)
+  except ValueError:
+    echo "Error: Invalid Sway version number"
+    return -1
+
+  # If Sway version > 1.12 use ext_workspace protocol
+  if version >= 1.12:
+    return -1
+
   # Create UNIX FD for sway
   let sway_fd = createNativeSocket(AF_UNIX, SOCK_STREAM, IPPROTO_NONE)
   if sway_fd == osInvalidSocket:
