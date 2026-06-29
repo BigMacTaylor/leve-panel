@@ -5,11 +5,14 @@
 #
 # ========================================================================================
 
-proc seatCapabilities(data: pointer, seat: ptr  wl_seat, capabilities: uint32) {.cdecl.} =
-  discard
-
 proc fixedToDouble(f: wl_fixed): float =
   return float(f / 256)
+
+proc isWithin(w: Widget, x, y: int): bool =
+  if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
+  #if x >= w.startPos[0] and x <= w.endPos[0]:
+    echo "Within bounds !"
+    return true
 
 # Pointer Motion
 proc pointerHandleMotion(
@@ -19,12 +22,6 @@ proc pointerHandleMotion(
   p.mouse_x = fixedToDouble(surfaceX)
   p.mouse_y = fixedToDouble(surfaceY)
   echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
-
-proc isWithin(w: Widget, x, y: int): bool =
-  if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
-  #if x >= w.startPos[0] and x <= w.endPos[0]:
-    echo "Within bounds !"
-    return true
 
 # Button Click
 proc pointerHandleButton(
@@ -130,15 +127,60 @@ proc pointerHandleScroll(
 
   lastScrollTime = now
 
-# Setup Pointer Listener
-var pointerListener = wlPointerListener(
+proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
+  # The frame event signifies we've received all grouped events for this moment
+  echo "Pointer frame event !!!!!!!!!!!!\n"
+  pointerState.isFrameReady = true
+
+  # Process the accumulated frame
+  if pointerState.motionPending:
+    echo "Pointer Frame Processed - New Position: {pointerState.x}, {pointerState.y}"
+    pointerState.motionPending = false
+
+  if pointerState.buttonPending:
+    echo "Pointer Frame Processed - Button {pointerState.button} state changed to {pointerState.buttonState}"
+    pointerState.buttonPending = false
+  
+  pointerState.isFrameReady = false
+
+
+proc onAxisSource(data: pointer, pointer: ptr wl_pointer, axisSource: uint32) {.cdecl.} =
+  discard
+
+proc onAxisStop(data: pointer, pointer: ptr wl_pointer, time, axis: uint32) {.cdecl.} =
+  discard
+
+proc onAxisDiscrete(data: pointer, pointer: ptr wl_pointer, axis: uint32, discrete: int32) {.cdecl.} =
+  discard
+
+let pointerListener = wlPointerListener(
   enter: pointerHandleEnter,
   leave: pointerHandleLeave, # Handle leave if needed
   motion: pointerHandleMotion,
   button: pointerHandleButton,
   axis: pointerHandleScroll, # Handle scroll if needed
-  frame: nil,
-  axis_source: nil,
-  axis_stop: nil,
-  axis_discrete: nil,
+  frame: pointerHandleFrame,
+  axis_source: onAxisSource,
+  axis_stop: onAxisStop,
+  axis_discrete: onAxisDiscrete,
+)
+
+# Get Seat
+proc seatCapabilities(data: pointer, seat: ptr wl_seat, capabilities: uint32) {.cdecl.} =
+  let pointer = wl_seat_get_pointer(seat)
+  if pointer == nil:
+    echo "Error: Failed to get wayland pointer"
+
+  # Add pointer listener
+  discard pointer.wl_pointer_add_listener(addr pointerListener, seat)
+
+proc seatName(data: pointer, seat: ptr wl_seat, name: ConstCStr) {.cdecl.} =
+  echo "[Seat] Name: ", $name, "\n"
+
+# Needed to convert 'const char*name' to cstring
+type CSeatNameCallback = proc (d: pointer, s: ptr wl_seat, n: cstring) {.cdecl.}
+
+let seatListener = wl_seat_listener(
+  capabilities: seatCapabilities,
+  name: cast[CSeatNameCallback](seatName)
 )

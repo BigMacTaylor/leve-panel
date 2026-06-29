@@ -27,7 +27,7 @@ proc xdgOutputDone(data: pointer, xdgOutput: ptr  zxdgOutputV1) {.cdecl.} =
   info.changed = true
 
 # Initialize listeners
-var xdgOutputListener =  zxdgOutputV1Listener(
+let xdgOutputListener =  zxdgOutputV1Listener(
   logical_position: xdgOutputLogicalPos, # Handle if needed
   logical_size: xdgOutputLogicalSize,
   done: xdgOutputDone,

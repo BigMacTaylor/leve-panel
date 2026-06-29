@@ -304,3 +304,8 @@ proc configureSurface(
   # Attach and Commit
   panel.surface.wl_surface_attach(buffer, int32(0), int32(0))
   panel.surface.wl_surface_commit()
+
+let surfaceListener = zwlrLayerSurfaceV1Listener(
+  configure: configureSurface,
+  closed: surfaceClose
+)

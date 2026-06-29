@@ -51,6 +51,14 @@ type DisplayInfo = ref object
   scale: int32
   changed: bool
 
+type PointerState = object
+  x, y: float64
+  button: uint32
+  buttonState: uint32
+  isFrameReady: bool
+  motionPending: bool
+  buttonPending: bool
+
 type LevePanel = ref object
   display: ptr wl_display
   output: ptr wl_output
@@ -66,6 +74,7 @@ type LevePanel = ref object
   shMem: ptr wl_shm
   buffer: ptr wl_buffer
   surface: ptr wl_surface
+  xdgWmBase: ptr xdg_wm_base
   layerSurface: ptr zwlrLayerSurfaceV1
   layerShell: ptr zwlrLayerShellV1
   size: int32 = 46
@@ -145,6 +154,7 @@ var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
+var pointerState = PointerState()
 var p = LevePanel()
 setCurrentDir(getHomeDir())
 
@@ -159,28 +169,39 @@ include "leve-panel"/[workspaces, sway, desktop_indicator, panel, output, callba
 proc globalRegistry(
     data: pointer, registry: ptr wl_registry, id: uint32, intf: ConstCStr, ver: uint32
 ) {.cdecl.} =
+
   let panel = cast[ptr LevePanel](data)
 
-  if $(intf) == "zwlr_layer_shell_v1":
-    panel.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
-      id, addr zwlr_layer_shell_v1_interface, 1
-    ))
+  if $(intf) == "wl_output":
+    panel.output = cast[ptr wlOutput](registry.wl_registry_bind(id, addr wl_output_interface, 1))
+
   elif $(intf) == "zxdg_output_manager_v1":
     panel.outputMan = cast[ptr zxdgOutputManagerV1](registry.wl_registry_bind(
-      id, addr zxdg_output_manager_v1_interface, 1
-    ))
-  elif $(intf) == "wl_output":
-    panel.output = cast[ptr wlOutput](registry.wl_registry_bind(id, addr wl_output_interface, 1))
-  elif $(intf) == "wl_shm":
-    panel.shMem = cast[ptr wl_shm](registry.wl_registry_bind(id, addr wl_shm_interface, 1))
+      id, addr zxdg_output_manager_v1_interface, 1))
+
+  elif $(intf) == "wl_seat":
+    panel.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 6))
+    discard panel.seat.wl_seat_add_listener(addr seatListener, panel.seat)
+
+  elif $(intf) == "wp_cursor_shape_manager_v1":
+    panel.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
+
   elif $(intf) == "wl_compositor":
     panel.compositor =
       cast[ptr wl_compositor](registry.wl_registry_bind(id, addr wl_compositor_interface, 4))
-  elif $(intf) == "wl_seat":
-    panel.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 1))
-    #panel.seat.addListener(addr pointerListener, nil)
-  elif $(intf) == "wp_cursor_shape_manager_v1":
-    panel.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
+
+  elif $(intf) == "wl_shm":
+    panel.shMem = cast[ptr wl_shm](registry.wl_registry_bind(id, addr wl_shm_interface, 1))
+#[
+  elif $(intf) == "xdg_wm_base":
+    panel.xdgWmBase =
+      cast[ptr xdg_wm_base](registry.wl_registry_bind(id, addr xdg_wm_base_interface, 1))
+    discard panel.xdgWmBase.xdg_wm_base_add_listener(addr xdgBaseListener, nil)
+]#
+  elif $(intf) == "zwlr_layer_shell_v1":
+    panel.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
+      id, addr zwlr_layer_shell_v1_interface, 1))
+
   elif $(intf) == "ext_workspace_manager_v1":
     panel.ws_manager = cast[ptr ext_workspace_manager_v1](registry.wl_registry_bind(id, addr ext_workspace_manager_v1_interface, 1))
     discard panel.ws_manager.ext_workspace_manager_v1_add_listener(addr managerListener, nil)
@@ -213,10 +234,6 @@ proc main() =
   let registry_listener =
     wlRegistryListener(global: globalRegistry, global_remove: removeGlobalRegistry)
   discard p.registry.wl_registry_add_listener(addr registry_listener, addr p)
-
-  if p.display == nil:
-    echo "Error: Failed to connect to Wayland display"
-
   discard wl_display_roundtrip(p.display)
 
   # Check if required interfaces were bound
@@ -267,6 +284,7 @@ proc main() =
     #destroy(p.display)
     return
 
+  # Set size horizontal or vertical
   if p.pos == top or p.pos == bottom:
     cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
   else:
@@ -286,23 +304,8 @@ proc main() =
   of PanelPos.right:
     p.layerSurface.zwlr_layer_surface_v1_set_anchor(11)
 
-  let surface_listener = zwlrLayerSurfaceV1Listener(
-    configure: configureSurface,
-    closed: surfaceClose
-    )
-  discard p.layerSurface.zwlr_layer_surface_v1_add_listener(addr surface_listener, addr p)
-
-  # Get Seat (Seat holds the pointer)
-  let seat_listener = wl_seat_listener(capabilities: seatCapabilities, name: nil)
-  discard p.seat.wl_seat_add_listener(addr seat_listener, nil)
-
-  # Get Pointer
-  let pointer = wl_seat_get_pointer(p.seat)
-  if pointer == nil:
-    echo "Error: Failed to get wayland pointer"
-
-  # Add pointer listener
-  discard pointer.wl_pointer_add_listener(addr pointerListener, nil)
+  # Listen for configure event
+  discard p.layerSurface.zwlr_layer_surface_v1_add_listener(addr surfaceListener, addr p)
 
   # Commit surface
   p.surface.wl_surface_commit()
