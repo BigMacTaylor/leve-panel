@@ -53,9 +53,9 @@ type DisplayInfo = ref object
 
 type PointerState = object
   x, y: float64
+  serial: uint32
   button: uint32
-  buttonState: uint32
-  isFrameReady: bool
+  btnPressed: bool
   motionPending: bool
   buttonPending: bool
 
@@ -81,8 +81,6 @@ type LevePanel = ref object
   iconSize: int32 = 32
   pos: PanelPos = PanelPos.bottom
   color: string = "#070C1E"
-  mouse_x: float
-  mouse_y: float
   scrollUpCmd: string
   scrollDownCmd: string
 
@@ -160,7 +158,7 @@ setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, menu, power]
-include "leve-panel"/[workspaces, sway, desktop_indicator, panel, output, callbacks]
+include "leve-panel"/[workspaces, sway, desktop_indicator, panel, tooltip, output, callbacks]
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry
@@ -192,12 +190,12 @@ proc globalRegistry(
 
   elif $(intf) == "wl_shm":
     panel.shMem = cast[ptr wl_shm](registry.wl_registry_bind(id, addr wl_shm_interface, 1))
-#[
+
   elif $(intf) == "xdg_wm_base":
     panel.xdgWmBase =
       cast[ptr xdg_wm_base](registry.wl_registry_bind(id, addr xdg_wm_base_interface, 1))
     discard panel.xdgWmBase.xdg_wm_base_add_listener(addr xdgBaseListener, nil)
-]#
+
   elif $(intf) == "zwlr_layer_shell_v1":
     panel.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
       id, addr zwlr_layer_shell_v1_interface, 1))
@@ -209,6 +207,11 @@ proc globalRegistry(
 proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32) {.cdecl.} =
   # This space deliberately left blank
   discard
+
+let registryListener = wlRegistryListener(
+  global: globalRegistry,
+  global_remove: removeGlobalRegistry
+)
 
 # ----------------------------------------------------------------------------------------
 #                                    Main
@@ -231,9 +234,7 @@ proc main() =
     return
 
   # Add registry listener
-  let registry_listener =
-    wlRegistryListener(global: globalRegistry, global_remove: removeGlobalRegistry)
-  discard p.registry.wl_registry_add_listener(addr registry_listener, addr p)
+  discard p.registry.wl_registry_add_listener(addr registryListener, addr p)
   discard wl_display_roundtrip(p.display)
 
   # Check if required interfaces were bound
@@ -333,7 +334,6 @@ proc main() =
   fds[1] = TPollfd(fd: time_fd, events: POLLIN)
   fds[2] = TPollfd(fd: sway_fd, events: POLLIN)
 
-  #var buffer = newString(4096)
   var curWS = 0
   var timeOut: cint = -1
   var swayEventsReady = false

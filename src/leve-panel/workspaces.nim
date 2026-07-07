@@ -16,7 +16,7 @@ proc getNumWorkspaces(): int =
   return workspaces.len
 
 # Handle Workspace Events
-proc onID(data: pointer; handle: ptr ext_workspace_handle_v1; id: cstring) {.cdecl.} =
+proc onWsID(data: pointer; handle: ptr ext_workspace_handle_v1; id: cstring) {.cdecl.} =
   echo "[Workspace] ", $cast[uint](handle), " changed ID to: ", id
 
 proc onWsNameChange(data: pointer; handle: ptr ext_workspace_handle_v1; name: cstring) {.cdecl.} =
@@ -36,7 +36,7 @@ proc onWsNameChange(data: pointer; handle: ptr ext_workspace_handle_v1; name: cs
 
       return
 
-proc onCoord(data: pointer; handle: ptr ext_workspace_handle_v1; coordinates: ptr wl_array) {.cdecl.} =
+proc onWsCoord(data: pointer; handle: ptr ext_workspace_handle_v1; coordinates: ptr wl_array) {.cdecl.} =
   echo "[Workspace] ", $cast[uint](handle), " changed coords: "
 
 proc onWsState(data: pointer; handle: ptr ext_workspace_handle_v1; state: uint32) {.cdecl.} =
@@ -50,7 +50,7 @@ proc onWsState(data: pointer; handle: ptr ext_workspace_handle_v1; state: uint32
         ws.state.excl(active)
       return
 
-proc onCap(data: pointer; handle: ptr ext_workspace_handle_v1; capabilities: uint32) {.cdecl.} =
+proc onWsCap(data: pointer; handle: ptr ext_workspace_handle_v1; capabilities: uint32) {.cdecl.} =
   echo "[Workspace] ", $cast[uint](handle), " changed capabilities to: ", capabilities
 
 proc onWsRemove(data: pointer; handle: ptr ext_workspace_handle_v1) {.cdecl.} =
@@ -60,12 +60,12 @@ proc onWsRemove(data: pointer; handle: ptr ext_workspace_handle_v1) {.cdecl.} =
       workspaces.delete(i)
       return
 
-var workspaceListener = ext_workspace_handle_v1_listener(
-  id: onID,
+let workspaceListener = ext_workspace_handle_v1_listener(
+  id: onWsID,
   name: onWsNameChange,
-  coordinates: onCoord,
+  coordinates: onWsCoord,
   state: onWsState,
-  capabilities: onCap,
+  capabilities: onWsCap,
   removed: onWsRemove
 )
 
@@ -78,7 +78,6 @@ proc newWorkspaceData(ws: ptr ext_workspace_handle_v1): WorkspaceData =
 proc onWsGroup(data: pointer, manager: ptr ext_workspace_manager_v1, id: ptr ext_workspace_group_handle_v1) {.cdecl.} =
   echo "[WS-Manager] New workspace group discovered: ", cast[uint](id)
 
-# Handle workspace events
 proc onWsEvent(data: pointer, manager: ptr ext_workspace_manager_v1, ws: ptr ext_workspace_handle_v1) {.cdecl.} =
   # Add ws handle to list of workspaces
   let wsData = newWorkspaceData(ws)
@@ -103,7 +102,7 @@ proc onManagerFinished(data: pointer, manager: ptr ext_workspace_manager_v1) {.c
   echo "[WS-Manager] Session finished by compositor."
 
 # Statically assign callbacks to workspace manager
-var managerListener = ext_workspace_manager_v1_listener(
+let managerListener = ext_workspace_manager_v1_listener(
   workspace_group: onWsGroup,
   workspace: onWsEvent,
   done: onWsEventDone,

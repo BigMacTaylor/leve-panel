@@ -5,13 +5,11 @@
 #
 # ========================================================================================
 
-proc fixedToDouble(f: wl_fixed): float =
+func fixedToDouble(f: wl_fixed): float =
   return float(f / 256)
 
-proc isWithin(w: Widget, x, y: int): bool =
+func isWithin(w: Widget, x, y: int): bool =
   if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
-  #if x >= w.startPos[0] and x <= w.endPos[0]:
-    echo "Within bounds !"
     return true
 
 # Pointer Motion
@@ -19,9 +17,9 @@ proc pointerHandleMotion(
     data: pointer, pointer: ptr wl_pointer, time: uint32, surfaceX: wl_fixed, surfaceY: wl_fixed
 ) {.cdecl.} =
   # Convert Wayland fixed point to float/integer
-  p.mouse_x = fixedToDouble(surfaceX)
-  p.mouse_y = fixedToDouble(surfaceY)
-  echo "Mouse Moved: ", p.mouse_x, ", ", p.mouse_y
+  pointerState.x = fixedToDouble(surfaceX)
+  pointerState.y = fixedToDouble(surfaceY)
+  pointerState.motionPending = true
 
 # Button Click
 proc pointerHandleButton(
@@ -33,12 +31,14 @@ proc pointerHandleButton(
     state: uint32,
 ) {.cdecl.} =
 
-  if state == 1:
-    echo "Button clicked: ", button, " ", p.mouse_x, ", ", p.mouse_y
+  pointerState.button = button
+  pointerState.btnPressed = (state != 0)
+  pointerState.serial = serial
+  pointerState.buttonPending = true
 
   if state == 1 and button == 272:
     for widget in widgets:
-      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
         for cb in widget.callBacks:
           if cb.event == Event.click_l:
             echo "clicked"
@@ -47,7 +47,7 @@ proc pointerHandleButton(
 
   if state == 1 and button == 273:
     for widget in widgets:
-      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
         for cb in widget.callBacks:
           if cb.event == Event.click_r:
             echo "clicked"
@@ -56,7 +56,7 @@ proc pointerHandleButton(
 
   if state == 1 and button == 274:
     for widget in widgets:
-      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
         for cb in widget.callBacks:
           if cb.event == Event.click_m:
             echo "clicked"
@@ -72,7 +72,7 @@ proc pointerHandleEnter(
     surfaceX: wl_fixed,
     surfaceY: wl_fixed,
 ) {.cdecl.} =
-  echo "Pointer entered surface"
+  echo "[Pointer] Entered surface"
 
   if p.cursor.isNil:
     echo "Setting cursor shape"
@@ -85,7 +85,10 @@ proc pointerHandleLeave(
     data: pointer, pointer: ptr wl_pointer, serial: uint32, surface: ptr wl_surface
 ) {.cdecl.} =
   #p.pointer.event = Event.leave
-  echo "Pointer left surface"
+  echo "[Pointer] Left surface"
+
+  pUp.destroyPopup()
+  pUp.widgetNum = 0
 
 var lastScrollTime = getMonoTime()
 
@@ -93,7 +96,7 @@ var lastScrollTime = getMonoTime()
 proc pointerHandleScroll(
     data: pointer, pointer: ptr wl_pointer, time: uint32, axis: uint32, value: wl_fixed
 ) {.cdecl.} =
-  echo "Pointer scroll on surface"
+  echo "[Pointer] Scroll on surface"
   echo axis
   echo value
 
@@ -107,7 +110,7 @@ proc pointerHandleScroll(
 
   if axis == 0 and value == -3840: # scroll up
     for widget in widgets:
-      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
         for cb in widget.callBacks:
           if cb.event == Event.scroll_up:
             echo "scroll_up"
@@ -117,7 +120,7 @@ proc pointerHandleScroll(
 
   if axis == 0 and value == 3840: # scroll down
     for widget in widgets:
-      if widget.isWithin(int(p.mouse_x), int(p.mouse_y)):
+      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
         for cb in widget.callBacks:
           if cb.event == Event.scroll_down:
             echo "scroll_down"
@@ -127,22 +130,43 @@ proc pointerHandleScroll(
 
   lastScrollTime = now
 
-proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
-  # The frame event signifies we've received all grouped events for this moment
-  echo "Pointer frame event !!!!!!!!!!!!\n"
-  pointerState.isFrameReady = true
+var lastPopupTime = getMonoTime()
 
-  # Process the accumulated frame
+proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
+  # Process pointer frame data
   if pointerState.motionPending:
-    echo "Pointer Frame Processed - New Position: {pointerState.x}, {pointerState.y}"
+    echo "[Pointer] Mouse moved: ", pointerState.x, " ", pointerState.y
     pointerState.motionPending = false
 
-  if pointerState.buttonPending:
-    echo "Pointer Frame Processed - Button {pointerState.button} state changed to {pointerState.buttonState}"
-    pointerState.buttonPending = false
-  
-  pointerState.isFrameReady = false
+    var newNum = 0
 
+    for i in 0 ..< widgets.len:
+      if widgets[i].isWithin(int(pointerState.x), int(pointerState.y)):
+        echo "[Pointer] Hovering ", widgets[i].widgetType
+        newNum = i + 1
+        break
+      else:
+        newNum = 0
+
+    if newNum == pUp.widgetNum:
+      discard
+    elif newNum == 0:
+      pUp.destroyPopup()
+      pUp.widgetNum = 0
+    else:
+      pUp.destroyPopup()
+      pUp.widgetNum = newNum
+      let now = getMonoTime()
+      if now > lastPopupTime + initDuration(milliseconds = 1000):
+        sleep(600)
+      lastPopupTime = now
+      widgets[newNum - 1].createTooltip()
+
+  if pointerState.buttonPending:
+    echo "[Pointer] Button clicked: ", pointerState.button, " ", pointerState.btnPressed, " ", pointerState.x, " ", pointerState.y
+    pointerState.buttonPending = false
+
+  echo "[Pointer] Frame event done."
 
 proc onAxisSource(data: pointer, pointer: ptr wl_pointer, axisSource: uint32) {.cdecl.} =
   discard

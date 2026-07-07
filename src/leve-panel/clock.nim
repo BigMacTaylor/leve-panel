@@ -5,7 +5,12 @@
 #
 # ========================================================================================
 
-# Callback function to update the label
+proc getDate(): string =
+  let now = now()
+  let date = now.format("dddd, MMMM d")
+
+  return date
+
 proc getTime(): string =
   let now = now()
   let time = now.format("h:mm tt")

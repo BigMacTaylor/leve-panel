@@ -89,16 +89,14 @@ proc drawPanel(panel: ptr LevePanel): ptr wlBuffer =
     echo "data unmap"
     discard munmap(cast[pointer](p.pixelData), p.pixelDataSize)
 
-  let width =
-    if panel.pos == top or panel.pos == bottom:
+  let width = if panel.pos == top or panel.pos == bottom:
       displayInfo.width
-    else:
+    else: panel.size
+
+  let height = if panel.pos == top or panel.pos == bottom:
       panel.size
-  let height =
-    if panel.pos == top or panel.pos == bottom:
-      panel.size
-    else:
-      displayInfo.height
+    else: displayInfo.height
+
   let stride = width * 4
   p.pixelDataSize = stride * height
 
@@ -110,6 +108,7 @@ proc drawPanel(panel: ptr LevePanel): ptr wlBuffer =
   p.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
     nil, p.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
   ))
+
   if cast[int](p.pixelData) == cast[int](MAP_FAILED):
     discard close(fd)
     return nil
@@ -271,8 +270,8 @@ proc surfaceClose(
     surface: ptr zwlr_layer_surface_v1,
 ) {.cdecl.} =
 
-  echo "Layer surface closed by compositor"
-    
+  echo "[Surface] Closed by compositor"
+
   # Generally, you must destroy the surface and the wl_surface
   #zwlr_layer_surface_v1_destroy(layerSurface)
   # Note: You should also destroy the underlying wl_surface here
@@ -285,10 +284,9 @@ proc configureSurface(
     width: uint32,
     height: uint32,
 ) {.cdecl.} =
-
-  cast[ptr zwlr_layer_surface_v1](surface).zwlr_layer_surface_v1_ack_configure(serial)
-
   echo "[Surface] Configure event"
+
+  surface.zwlr_layer_surface_v1_ack_configure(serial)
 
   if displayInfo.changed == false:
     return
@@ -298,6 +296,7 @@ proc configureSurface(
   if p.buffer != nil:
     echo "Redraw panel"
 
+  # Render framebuffer
   let panel = cast[ptr LevePanel](data)
   let buffer = drawPanel(panel)
 
