@@ -158,7 +158,7 @@ setCurrentDir(getHomeDir())
 
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, menu, power]
-include "leve-panel"/[workspaces, sway, desktop_indicator, panel, tooltip, output, callbacks]
+include "leve-panel"/[workspaces, sway, desktop_indicator, buffer, panel, tooltip, output, callbacks]
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry

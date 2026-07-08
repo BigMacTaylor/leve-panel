@@ -1,0 +1,114 @@
+# ========================================================================================
+#
+#                                   Leve Panel
+#                                   Wl Buffer
+#
+# ========================================================================================
+
+proc wl_buffer_release(data: pointer, buffer: ptr wlBuffer) {.cdecl.} =
+  # Sent by the compositor when it's no longer using this buffer
+  echo "buffer release"
+  #destroy(wl_buffer)
+
+let wl_buffer_listener = wlBufferListener(release: wl_buffer_release)
+
+# Shared memory support code
+proc randname(buf: var openArray[char]) =
+  var ts: Timespec
+  discard clock_gettime(CLOCK_REALTIME, ts)
+  var r = ts.tv_nsec
+  for i in 0 ..< 6:
+    buf[i] = char(ord('A') + (r and 15) + ((r and 16) shl 1))
+    r = r shr 5
+
+# Create a temporary shared memory file
+proc create_shm_file(): cint =
+  var retries = 100
+  while retries > 0:
+    var name_arr: array[15, char]
+    for i, c in "/wl_shm-XXXXXX":
+      name_arr[i] = c
+    randname(name_arr.toOpenArray(8, 13))
+    dec retries
+
+    let fd =
+      shm_open(cast[cstring](addr name_arr[0]), O_RDWR or O_CREAT or O_EXCL, 0o600)
+    if fd >= 0:
+      discard shm_unlink(cast[cstring](addr name_arr[0]))
+      return fd
+
+  return -1
+
+proc allocate_shm_file(size: csize_t): cint =
+  let fd = create_shm_file()
+  if fd < 0:
+    return -1
+
+  var ret: cint
+  while true:
+    ret = ftruncate(fd, cint(size))
+    if ret >= 0 or errno != EINTR:
+      break
+
+  if ret < 0:
+    discard close(fd)
+    return -1
+
+  return fd
+
+# ----------------------------------------------------------------------------------------
+#                                    Get Buffer
+# ----------------------------------------------------------------------------------------
+
+proc getBuffer[T](s: T, img: Image): ptr wlBuffer =
+  if s.pixelData != nil:
+    echo "data unmap"
+    discard munmap(s.pixelData, s.pixelDataSize)
+
+  let width = int32(img.width)
+  let height = int32(img.height)
+
+  let stride = width * 4
+  s.pixelDataSize = stride * height
+
+  # Allocate Shared Memory (mmap)
+  let fd = allocate_shm_file(csize_t(s.pixelDataSize))
+  if fd == -1:
+    return nil
+
+  s.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
+    nil, s.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
+  ))
+
+  if s.pixelData == MAP_FAILED:
+    echo "mmap failed"
+    discard close(fd)
+    return nil
+
+  let memPool = p.shMem.wl_shm_create_pool(int32(fd), s.pixelDataSize)
+
+  if s.buffer != nil:
+    echo "buffer destroy"
+    wl_buffer_destroy(s.buffer)
+
+  s.buffer = memPool.wl_shm_pool_create_buffer(
+    int32(0),
+    int32(width),
+    int32(height),
+    int32(stride),
+    uint32(ShmFormat.XBGR8888),
+  )
+
+  # Copy to shared buffer
+  # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
+  copyMem(s.pixelData, img.data[0].addr, s.pixelDataSize)
+
+  # Cleanup
+  wl_shm_pool_destroy(memPool)
+  discard close(fd)
+  #discard munmap(s.pixelData, s.pixelDataSize)
+
+  discard s.buffer.wl_buffer_add_listener(addr wl_buffer_listener, nil)
+
+  return s.buffer
+

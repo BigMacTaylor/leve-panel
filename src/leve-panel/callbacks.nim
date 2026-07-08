@@ -163,7 +163,7 @@ proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
       widgets[newNum - 1].createTooltip()
 
   if pointerState.buttonPending:
-    echo "[Pointer] Button clicked: ", pointerState.button, " ", pointerState.btnPressed, " ", pointerState.x, " ", pointerState.y
+    echo "[Pointer] Button \'", pointerState.button, "\' pressed: ", pointerState.btnPressed, " ", pointerState.x, " ", pointerState.y
     pointerState.buttonPending = false
 
   echo "[Pointer] Frame event done."

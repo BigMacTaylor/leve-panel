@@ -76,61 +76,24 @@ let popupListener = xdg_popup_listener(
     popup_done: popupClose
 )
 
-proc drawPopup(popup: ptr Popup): ptr wlBuffer =
-  echo "\nDrawing popup... "
-  echo "Size: ", popup.width, "x", popup.height, " at offset (", popup.pos_x, ", ", popup.pos_y, ")"
+proc drawTooltipImg(tooltip: ptr Tooltip): Image =
+  echo "\nDrawing tooltip... "
 
-  if pUp.pixelData != nil:
-    echo "data unmap"
-    discard munmap(cast[pointer](pUp.pixelData), pUp.pixelDataSize)
-
+  let popup = tooltip.popup
   let width = popup.width
   let height = popup.height
 
-  let stride = width * 4
-  pUp.pixelDataSize = stride * height
-
-  # Allocate Shared Memory (mmap)
-  let fd = allocate_shm_file(csize_t(pUp.pixelDataSize))
-  if fd == -1:
-    return nil
-
-  pUp.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
-    nil, pUp.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
-  ))
-
-  if cast[int](pUp.pixelData) == cast[int](MAP_FAILED):
-    discard close(fd)
-    return nil
-
-  let memPool = p.shMem.wl_shm_create_pool(int32(fd), pUp.pixelDataSize)
-
-  #if popup.buffer != nil:
-  #  echo "buffer destroy"
-  #  wl_buffer_destroy(popup.buffer)
-
-  let buffer = memPool.wl_shm_pool_create_buffer(
-    int32(0),
-    int32(width),
-    int32(height),
-    int32(stride),
-    uint32(ShmFormat.XBGR8888),
-  )
-
-  let text = tt.text
+  # Draw tooltip background
   var img = newImage(width, height)
-  let ctx = img.newContext()
+  img.fill(rgba(40, 40, 40, 255)) # Dark gray
 
-  img.fill(rgba(40, 40, 40, 255)) # Dark gray background
-  #tooltipImage.fill(parseHtmlColor(p.color))
-
-  # Draw Text
+  # Draw text
+  let text = tooltip.text
   let font = try:
     readFont(fontPath)
   except:
     fontPath = getFont()
     readFont(fontPath)
-
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 
@@ -145,15 +108,7 @@ proc drawPopup(popup: ptr Popup): ptr wlBuffer =
   # Draw the text within the specified bounds, centered
   img.fillText(layout, translate(vec2(0, 0)))
 
-  # Copy to shared buffer
-  # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
-  copyMem(pUp.pixelData, img.data[0].addr, pUp.pixelDataSize)
-
-  # Cleanup
-  wl_shm_pool_destroy(memPool)
-  discard close(fd)
-
-  return cast[ptr wl_buffer](buffer)
+  return img
 
 proc handleXdgSurfaceConfigure(
     data: pointer, 
@@ -174,29 +129,31 @@ proc handleXdgSurfaceConfigure(
   #  xdgSurface.xdg_surface_set_window_geometry(0, 0, popup.width, popup.height)
 
   # Render framebuffer
-  let popupData = cast[ptr Popup](data)
-  let buffer = drawPopup(popupData)
+  let tooltip = cast[ptr Tooltip](data)
+  let img = drawTooltipImg(tooltip)
+  let surface = tooltip.popup
+  let buffer = surface.getBuffer(img)
 
   # Attach and Commit
-  popupData.surface.wl_surface_attach(buffer, int32(0), int32(0))
-  popupData.surface.wl_surface_commit()
+  pUp.surface.wl_surface_attach(buffer, 0, 0)
+  pUp.surface.wl_surface_commit()
 
 let xdgSurfaceListener = xdgSurfaceListener(
   configure: handleXdgSurfaceConfigure
 )
 
-proc createPopup[T](x, y, width, height: int32, data: ptr T) =
+proc createPopup(x, y, width, height: int32, data: pointer) =
   echo "create popup"
 
   # 1. Create a wl surface for the tooltip
-  data.popup.surface = p.compositor.wl_compositor_create_surface()
+  pUp.surface = p.compositor.wl_compositor_create_surface()
 
   # 2. Get the xdg_surface wrapper
-  data.popup.xdgSurface = p.xdgWmBase.xdg_wm_base_get_xdg_surface(data.popup.surface)
+  pUp.xdgSurface = p.xdgWmBase.xdg_wm_base_get_xdg_surface(pUp.surface)
 
   # Define where the tooltip should appear relative to parent surface
   let positioner = p.xdgWmBase.xdg_wm_base_create_positioner()
-  positioner.xdg_positioner_set_size(data.popup.width, data.popup.height)
+  positioner.xdg_positioner_set_size(pUp.width, pUp.height)
   positioner.xdg_positioner_set_anchor_rect(x, y, width, height)
   #positioner.xdg_positioner_set_offset(0, 5)
   positioner.xdg_positioner_set_anchor(XDG_POSITIONER_ANCHOR_TOP.uint32) 
@@ -205,25 +162,25 @@ proc createPopup[T](x, y, width, height: int32, data: ptr T) =
 
   # 4. Assign the Popup role
   # Extract the xdg_popup role from the XdgSurface (null parent goes here initially)
-  data.popup.xdgPopup = data.popup.xdgSurface.xdg_surface_get_popup(nil, positioner)
+  pUp.xdgPopup = pUp.xdgSurface.xdg_surface_get_popup(nil, positioner)
 
   #discard wl_display_roundtrip(p.display)
 
   # Tell the layer shell that this popup belongs directly to your layer_surface
-  p.layerSurface.zwlr_layer_surface_v1_get_popup(cast[ptr wlr_layer_shell_unstable_v1.xdg_popup](data.popup.xdgPopup))
+  p.layerSurface.zwlr_layer_surface_v1_get_popup(cast[ptr wlr_layer_shell_unstable_v1.xdg_popup](pUp.xdgPopup))
 
   # Grab seat
-  data.popup.xdgPopup.xdg_popup_grab(p.seat, pointerState.serial)
+  pUp.xdgPopup.xdg_popup_grab(p.seat, pointerState.serial)
 
   # Listen for configure events
-  discard data.popup.xdgSurface.xdg_surface_add_listener(addr xdgSurfaceListener, addr data.popup)
-  discard data.popup.xdgPopup.xdg_popup_add_listener(addr popupListener, addr data.popup)
+  discard pUp.xdgSurface.xdg_surface_add_listener(addr xdgSurfaceListener, data)
+  discard pUp.xdgPopup.xdg_popup_add_listener(addr popupListener, addr pUp)
 
   # 6. Attach buffer/content to the tooltip surface & commit
   #tt.popup.surface.wl_surface_attach(tt.popup.buffer, int32(0), int32(0))
 
   # 7. Commit the base tooltip surface state to trigger the compositor configuration
-  data.popup.surface.wl_surface_commit()
+  pUp.surface.wl_surface_commit()
   
   # Clean up the positioner object as it is no longer required after getPopup
   positioner.xdg_positioner_destroy()
