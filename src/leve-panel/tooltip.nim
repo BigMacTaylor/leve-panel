@@ -5,40 +5,15 @@
 #
 # ========================================================================================
 
-type Popup = ref object
-  pos_x: int32
-  pos_y: int32
-  width: int32
-  height: int32
-  pixelData: ptr UncheckedArray[uint32]
-  pixelDataSize: int32
-  shMem: ptr wl_shm
-  buffer: ptr wl_buffer
-  surface: ptr wl_surface
-  xdgSurface: ptr xdg_surface
-  xdgPopup: ptr xdg_shell.xdg_popup
-  parent: ptr zwlrLayerSurfaceV1
-  widgetNum: int
 
-type Tooltip = ref object
-  text: string
-  popup: Popup
 
-type Menu = ref object
-  text: string
-  popup: Popup
 
-let pUp = Popup()
-var tt = Tooltip()
-var m = Menu()
-tt.popup = pUp
-m.popup = pUp
 
 
 proc popupConfigure(
-    data: pointer,
-    popup: ptr xdg_shell.xdg_popup,
-    x, y, width, height: int32
+  data: pointer,
+  popup: ptr xdg_shell.xdg_popup,
+  x, y, width, height: int32
 ) {.cdecl.} =
   echo "Popup configured to size: ", width, "x", height, " at offset (", x, ", ", y, ")"
 
@@ -72,8 +47,8 @@ proc popupClose(data: pointer; popup: ptr xdg_shell.xdg_popup) {.cdecl.} =
   pUp.destroyPopup()
 
 let popupListener = xdg_popup_listener(
-    configure: popupConfigure,
-    popup_done: popupClose
+  configure: popupConfigure,
+  popup_done: popupClose
 )
 
 proc drawTooltipImg(tooltip: ptr Tooltip): Image =
@@ -110,10 +85,27 @@ proc drawTooltipImg(tooltip: ptr Tooltip): Image =
 
   return img
 
+proc updateTooltip(tooltip: ptr Tooltip) =
+  let popup = tooltip.popup
+  let width = popup.width
+  let height = popup.height
+
+  # Draw damaged area
+  let img = drawTooltipImg(tooltip)
+
+  # Copy new image to shared buffer
+  copyMem(pUp.pixelData, img.data[0].addr, pUp.pixelDataSize)
+
+  # Attach and Commit
+  pUp.surface.wl_surface_attach(pUp.buffer, 0, 0)
+  pUp.surface.wl_surface_damage(0, 0, width, height)
+  #pUp.surface.wl_surface_commit()
+
+
 proc handleXdgSurfaceConfigure(
-    data: pointer, 
-    xdgSurface: ptr xdg_surface, 
-    serial: uint32
+  data: pointer, 
+  xdgSurface: ptr xdg_surface, 
+  serial: uint32
 ) {.cdecl.} =
   echo "[Xdg Surface] Configure event"
 
@@ -187,20 +179,20 @@ proc createPopup(x, y, width, height: int32, data: pointer) =
 
 proc createTooltip(w: Widget) =
   echo "create tooltip"
+  tt.popup.height = 30
 
   case w.widgetType
   of WidgetType.clock:
+    tt.popup.width = 150
     tt.text = getDate()
   of WidgetType.volume:
+    tt.popup.width = 100
     if volMute:
       tt.text = "Volume: Muted"
     else:
       tt.text = "Volume: " & $cur_vol & "%"
   else:
     return
-
-  tt.popup.width = 110
-  tt.popup.height = 30
 
   createPopup(
     int32(w.startPos[0]),

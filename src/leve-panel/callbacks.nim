@@ -157,7 +157,7 @@ proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
       pUp.destroyPopup()
       pUp.widgetNum = newNum
       let now = getMonoTime()
-      if now > lastPopupTime + initDuration(milliseconds = 1000):
+      if now > lastPopupTime + initDuration(milliseconds = 1500):
         sleep(600)
       lastPopupTime = now
       widgets[newNum - 1].createTooltip()

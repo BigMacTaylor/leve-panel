@@ -142,9 +142,15 @@ proc onMute(data: pointer) =
   if volMute:
     volMute = false
     discard execShellCmd(cmd & "0")
+    tt.text = "Volume: " & $cur_vol & "%"
   else:
     volMute = true
     discard execShellCmd(cmd & "1")
+    tt.text = "Volume: Muted"
+
+  # Update tooltip
+  updateTooltip(addr tt)
+  pUp.surface.wl_surface_commit()
 
   # Update state and Image
   volState = getVolState()
@@ -179,6 +185,11 @@ proc volUp(data: pointer) =
     discard execShellCmd(muteCmd & "0")
   echo "mute state ", volMute
 
+  # Update tooltip
+  tt.text = "Volume: " & $cur_vol & "%"
+  updateTooltip(addr tt)
+  pUp.surface.wl_surface_commit()
+
   # Update state and Image
   volState = getVolState()
   if curVolState == volState:
@@ -205,6 +216,11 @@ proc volDown(data: pointer) =
   else:
     cur_vol = 0
     discard execShellCmd(cmd & "0%")
+
+  # Update tooltip
+  tt.text = "Volume: " & $cur_vol & "%"
+  updateTooltip(addr tt)
+  pUp.surface.wl_surface_commit()
 
   # Update state and Image
   volState = getVolState()

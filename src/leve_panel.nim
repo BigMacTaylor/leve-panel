@@ -84,6 +84,29 @@ type LevePanel = ref object
   scrollUpCmd: string
   scrollDownCmd: string
 
+type Popup = ref object
+  pos_x: int32
+  pos_y: int32
+  width: int32
+  height: int32
+  pixelData: ptr UncheckedArray[uint32]
+  pixelDataSize: int32
+  shMem: ptr wl_shm
+  buffer: ptr wl_buffer
+  surface: ptr wl_surface
+  xdgSurface: ptr xdg_surface
+  xdgPopup: ptr xdg_shell.xdg_popup
+  parent: ptr zwlrLayerSurfaceV1
+  widgetNum: int
+
+type Tooltip = ref object
+  text: string
+  popup: Popup
+
+type Menu = ref object
+  text: string
+  popup: Popup
+
 type VolState = enum
   mute
   low
@@ -154,8 +177,14 @@ var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
 var pointerState = PointerState()
 var p = LevePanel()
+let pUp = Popup()
+var tt = Tooltip()
+var m = Menu()
+tt.popup = pUp
+m.popup = pUp
 setCurrentDir(getHomeDir())
 
+proc updateTooltip(tooltip: ptr Tooltip)
 proc updateWidget(w: ptr Widget)
 include "leve-panel"/[config, favorites, clock, volume, menu, power]
 include "leve-panel"/[workspaces, sway, desktop_indicator, buffer, panel, tooltip, output, callbacks]

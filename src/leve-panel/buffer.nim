@@ -22,7 +22,7 @@ proc randname(buf: var openArray[char]) =
     r = r shr 5
 
 # Create a temporary shared memory file
-proc create_shm_file(): cint =
+proc createShmFd(): cint =
   var retries = 100
   while retries > 0:
     var name_arr: array[15, char]
@@ -39,8 +39,8 @@ proc create_shm_file(): cint =
 
   return -1
 
-proc allocate_shm_file(size: csize_t): cint =
-  let fd = create_shm_file()
+proc createShmFile(size: int32): cint =
+  let fd = createShmFd()
   if fd < 0:
     return -1
 
@@ -72,7 +72,7 @@ proc getBuffer[T](s: T, img: Image): ptr wlBuffer =
   s.pixelDataSize = stride * height
 
   # Allocate Shared Memory (mmap)
-  let fd = allocate_shm_file(csize_t(s.pixelDataSize))
+  let fd = createShmFile(s.pixelDataSize)
   if fd == -1:
     return nil
 
