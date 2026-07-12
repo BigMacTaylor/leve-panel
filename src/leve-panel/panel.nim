@@ -63,7 +63,7 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
 #                                    Draw Panel
 # ----------------------------------------------------------------------------------------
 
-proc drawPanelImg(panel: ptr LevePanel): Image =
+proc drawPanelImg(panel: ptr Panel): Image =
   echo "\nDrawing panel... \n"
 
   let width = if panel.pos == top or panel.pos == bottom:
@@ -198,12 +198,12 @@ proc configureSurface(
     echo "Redraw panel"
 
   # Render framebuffer
-  let panel = cast[ptr LevePanel](data)
+  let panel = cast[ptr Panel](data)
   let img = drawPanelImg(panel)
   let buffer = panel.getBuffer(img)
 
   # Attach and Commit
-  panel.surface.wl_surface_attach(buffer, int32(0), int32(0))
+  panel.surface.wl_surface_attach(buffer, 0, 0)
   panel.surface.wl_surface_commit()
 
 let surfaceListener = zwlrLayerSurfaceV1Listener(

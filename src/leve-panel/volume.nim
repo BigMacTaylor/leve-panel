@@ -150,7 +150,7 @@ proc onMute(data: pointer) =
 
   # Update tooltip
   updateTooltip(addr tt)
-  pUp.surface.wl_surface_commit()
+  tt.surface.wl_surface_commit()
 
   # Update state and Image
   volState = getVolState()
@@ -188,7 +188,7 @@ proc volUp(data: pointer) =
   # Update tooltip
   tt.text = "Volume: " & $cur_vol & "%"
   updateTooltip(addr tt)
-  pUp.surface.wl_surface_commit()
+  tt.surface.wl_surface_commit()
 
   # Update state and Image
   volState = getVolState()
@@ -220,7 +220,7 @@ proc volDown(data: pointer) =
   # Update tooltip
   tt.text = "Volume: " & $cur_vol & "%"
   updateTooltip(addr tt)
-  pUp.surface.wl_surface_commit()
+  tt.surface.wl_surface_commit()
 
   # Update state and Image
   volState = getVolState()

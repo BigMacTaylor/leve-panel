@@ -59,7 +59,7 @@ type PointerState = object
   motionPending: bool
   buttonPending: bool
 
-type LevePanel = ref object
+type State = ref object
   display: ptr wl_display
   output: ptr wl_output
   outputMan: ptr zxdgOutputManagerV1
@@ -69,14 +69,22 @@ type LevePanel = ref object
   cursor_manager: ptr wp_cursor_shape_manager_v1
   cursor: ptr wp_cursor_shape_device_v1
   compositor: ptr wl_compositor
-  pixelData: ptr UncheckedArray[uint32]
-  pixelDataSize: int32
   shMem: ptr wl_shm
-  buffer: ptr wl_buffer
-  surface: ptr wl_surface
   xdgWmBase: ptr xdg_wm_base
   layerSurface: ptr zwlrLayerSurfaceV1
   layerShell: ptr zwlrLayerShellV1
+
+type Surface = ref object of RootObj
+  pos_x: int32
+  pos_y: int32
+  width: int32
+  height: int32
+  pixelData: ptr UncheckedArray[uint32]
+  pixelDataSize: int32
+  buffer: ptr wl_buffer
+  surface: ptr wl_surface
+
+type Panel = ref object of Surface
   size: int32 = 46
   iconSize: int32 = 32
   pos: PanelPos = PanelPos.bottom
@@ -84,28 +92,22 @@ type LevePanel = ref object
   scrollUpCmd: string
   scrollDownCmd: string
 
-type Popup = ref object
-  pos_x: int32
-  pos_y: int32
-  width: int32
-  height: int32
-  pixelData: ptr UncheckedArray[uint32]
-  pixelDataSize: int32
-  shMem: ptr wl_shm
-  buffer: ptr wl_buffer
-  surface: ptr wl_surface
+type PopupSurface = ref object of Surface
   xdgSurface: ptr xdg_surface
   xdgPopup: ptr xdg_shell.xdg_popup
   parent: ptr zwlrLayerSurfaceV1
+
+type Tooltip = ref object of PopupSurface
   widgetNum: int
-
-type Tooltip = ref object
   text: string
-  popup: Popup
 
-type Menu = ref object
-  text: string
-  popup: Popup
+type
+  Menu = ref object of PopupSurface
+    text: string
+    children: seq[SubMenu]
+  SubMenu = ref object
+    value: string
+    children: seq[SubMenu]
 
 type VolState = enum
   mute
@@ -176,12 +178,10 @@ var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
 var pointerState = PointerState()
-var p = LevePanel()
-let pUp = Popup()
+var s = State()
+var p = Panel()
 var tt = Tooltip()
 var m = Menu()
-tt.popup = pUp
-m.popup = pUp
 setCurrentDir(getHomeDir())
 
 proc updateTooltip(tooltip: ptr Tooltip)
@@ -197,41 +197,41 @@ proc globalRegistry(
     data: pointer, registry: ptr wl_registry, id: uint32, intf: ConstCStr, ver: uint32
 ) {.cdecl.} =
 
-  let panel = cast[ptr LevePanel](data)
+  let state = cast[ptr State](data)
 
   if $(intf) == "wl_output":
-    panel.output = cast[ptr wlOutput](registry.wl_registry_bind(id, addr wl_output_interface, 1))
+    state.output = cast[ptr wlOutput](registry.wl_registry_bind(id, addr wl_output_interface, 1))
 
   elif $(intf) == "zxdg_output_manager_v1":
-    panel.outputMan = cast[ptr zxdgOutputManagerV1](registry.wl_registry_bind(
+    state.outputMan = cast[ptr zxdgOutputManagerV1](registry.wl_registry_bind(
       id, addr zxdg_output_manager_v1_interface, 1))
 
   elif $(intf) == "wl_seat":
-    panel.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 6))
-    discard panel.seat.wl_seat_add_listener(addr seatListener, panel.seat)
+    state.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 6))
+    discard state.seat.wl_seat_add_listener(addr seatListener, state.seat)
 
   elif $(intf) == "wp_cursor_shape_manager_v1":
-    panel.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
+    state.cursor_manager = cast[ptr wp_cursor_shape_manager_v1](registry.wl_registry_bind(id, addr wp_cursor_shape_manager_v1_interface, 1))
 
   elif $(intf) == "wl_compositor":
-    panel.compositor =
+    state.compositor =
       cast[ptr wl_compositor](registry.wl_registry_bind(id, addr wl_compositor_interface, 4))
 
   elif $(intf) == "wl_shm":
-    panel.shMem = cast[ptr wl_shm](registry.wl_registry_bind(id, addr wl_shm_interface, 1))
+    state.shMem = cast[ptr wl_shm](registry.wl_registry_bind(id, addr wl_shm_interface, 1))
 
   elif $(intf) == "xdg_wm_base":
-    panel.xdgWmBase =
+    state.xdgWmBase =
       cast[ptr xdg_wm_base](registry.wl_registry_bind(id, addr xdg_wm_base_interface, 1))
-    discard panel.xdgWmBase.xdg_wm_base_add_listener(addr xdgBaseListener, nil)
+    discard state.xdgWmBase.xdg_wm_base_add_listener(addr xdgBaseListener, nil)
 
   elif $(intf) == "zwlr_layer_shell_v1":
-    panel.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
+    state.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
       id, addr zwlr_layer_shell_v1_interface, 1))
 
   elif $(intf) == "ext_workspace_manager_v1":
-    panel.ws_manager = cast[ptr ext_workspace_manager_v1](registry.wl_registry_bind(id, addr ext_workspace_manager_v1_interface, 1))
-    discard panel.ws_manager.ext_workspace_manager_v1_add_listener(addr managerListener, nil)
+    state.ws_manager = cast[ptr ext_workspace_manager_v1](registry.wl_registry_bind(id, addr ext_workspace_manager_v1_interface, 1))
+    discard state.ws_manager.ext_workspace_manager_v1_add_listener(addr managerListener, nil)
 
 proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32) {.cdecl.} =
   # This space deliberately left blank
@@ -250,92 +250,92 @@ proc main() =
   echo "\nStarting Leve-Panel...\n"
 
   # Connect to the Display
-  p.display = wl_display_connect(nil)
-  if p.display == nil:
+  s.display = wl_display_connect(nil)
+  if s.display == nil:
     echo "Error: Failed to connect to Wayland display"
     return
 
   # Get registry
-  p.registry = wl_display_get_registry(p.display)
-  if p.registry == nil:
+  s.registry = wl_display_get_registry(s.display)
+  if s.registry == nil:
     echo "Error: Failed to get registry"
-    #destroy(p.display)
+    #destroy(s.display)
     return
 
   # Add registry listener
-  discard p.registry.wl_registry_add_listener(addr registryListener, addr p)
-  discard wl_display_roundtrip(p.display)
+  discard s.registry.wl_registry_add_listener(addr registryListener, addr s)
+  discard wl_display_roundtrip(s.display)
 
   # Check if required interfaces were bound
-  if p.compositor == nil:
+  if s.compositor == nil:
     echo "Error: Wayland compositor not available"
-    wl_registry_destroy(p.registry)
-    #destroy(p.display)
+    wl_registry_destroy(s.registry)
+    #destroy(s.display)
     return
 
-  if p.output == nil:
+  if s.output == nil:
     echo "Error: Failed to get output"
-    wl_registry_destroy(p.registry)
-    #destroy(p.display)
+    wl_registry_destroy(s.registry)
+    #destroy(s.display)
     return
 
   # Bind output to get display dimensions
-  p.output.bindOutput(p.outputMan)
+  s.output.bindOutput(s.outputMan)
 
   # Create surface
-  p.surface = p.compositor.wl_compositor_create_surface()
+  p.surface = s.compositor.wl_compositor_create_surface()
   if p.surface == nil:
     echo "Error: Failed to create wayland surface"
-    wl_registry_destroy(p.registry)
-    #destroy(p.display)
+    wl_registry_destroy(s.registry)
+    #destroy(s.display)
     return
 
-  if p.layerShell == nil:
+  if s.layerShell == nil:
     echo "Error: Failed to create layer shell"
     echo "Are you running Gnome?... yuck!\n"
     wl_surface_destroy(p.surface)
-    wl_registry_destroy(p.registry)
-    #destroy(p.display)
+    wl_registry_destroy(s.registry)
+    #destroy(s.display)
     return
 
   # Add surface to layer
-  p.layerSurface = cast[ptr zwlr_layer_surface_v1](zwlr_layer_shell_v1_get_layer_surface(
-    cast[ptr zwlr_layer_shell_v1](p.layerShell),
+  s.layerSurface = cast[ptr zwlr_layer_surface_v1](zwlr_layer_shell_v1_get_layer_surface(
+    cast[ptr zwlr_layer_shell_v1](s.layerShell),
     p.surface,
     nil,
     cast[uint32](top),
     cstring("leve-panel"),
   ))
 
-  if p.layerSurface == nil:
+  if s.layerSurface == nil:
     echo "Error: Failed to create layer surface"
     wl_surface_destroy(p.surface)
-    wl_registry_destroy(p.registry)
-    #destroy(p.display)
+    wl_registry_destroy(s.registry)
+    #destroy(s.display)
     return
 
   # Set size horizontal or vertical
   if p.pos == top or p.pos == bottom:
-    cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
+    cast[ptr zwlr_layer_surface_v1](s.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
   else:
-    cast[ptr zwlr_layer_surface_v1](p.layerSurface).zwlr_layer_surface_v1_set_size(uint32(p.size), uint32(displayInfo.height))
+    cast[ptr zwlr_layer_surface_v1](s.layerSurface).zwlr_layer_surface_v1_set_size(uint32(p.size), uint32(displayInfo.height))
 
   # Push other windows out of the way
-  p.layerSurface.zwlr_layer_surface_v1_set_exclusive_zone(p.size)
+  s.layerSurface.zwlr_layer_surface_v1_set_exclusive_zone(p.size)
 
   # Set position on the screen
   case p.pos
   of PanelPos.top:
-    p.layerSurface.zwlr_layer_surface_v1_set_anchor(13)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(13)
   of PanelPos.bottom:
-    p.layerSurface.zwlr_layer_surface_v1_set_anchor(14)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(14)
   of PanelPos.left:
-    p.layerSurface.zwlr_layer_surface_v1_set_anchor(7)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(7)
   of PanelPos.right:
-    p.layerSurface.zwlr_layer_surface_v1_set_anchor(11)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(11)
 
   # Listen for configure event
-  discard p.layerSurface.zwlr_layer_surface_v1_add_listener(addr surfaceListener, addr p)
+  discard s.layerSurface.zwlr_layer_surface_v1_add_listener(addr surfaceListener, addr p)
 
   # Commit surface
   p.surface.wl_surface_commit()
@@ -345,7 +345,7 @@ proc main() =
   # ----------------------------------------------------------------------------------------
 
   # Get Wayland FD
-  let wl_fd = wl_display_get_fd(p.display)
+  let wl_fd = wl_display_get_fd(s.display)
 
   # Setup Timer FD
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
@@ -375,9 +375,9 @@ proc main() =
 
   while true:
     # Prepare Wayland
-    while prepareRead(p.display) != 0:
-      discard dispatchPending(p.display)
-    discard wl_display_flush(p.display)
+    while prepareRead(s.display) != 0:
+      discard dispatchPending(s.display)
+    discard wl_display_flush(s.display)
 
     # Poll FDs (timeout of -1 means block indefinitely)
     if poll(addr fds[0], 3, timeOut) < 0:
@@ -385,10 +385,10 @@ proc main() =
 
     # Handle Wayland Events
     if (fds[0].revents and POLLIN) != 0:
-      discard read_events(p.display)
-      discard dispatchPending(p.display)
+      discard read_events(s.display)
+      discard dispatchPending(s.display)
     else:
-      cancel_read(p.display)
+      cancel_read(s.display)
 
     # Handle timer
     if (fds[1].revents and POLLIN) != 0:
@@ -463,7 +463,7 @@ proc main() =
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)
 
-  p.seat.wl_seat_release()
+  s.seat.wl_seat_release()
 
 proc cleanup() {.noconv.} =
   echo "Program interrupted by user"

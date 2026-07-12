@@ -74,21 +74,21 @@ proc pointerHandleEnter(
 ) {.cdecl.} =
   echo "[Pointer] Entered surface"
 
-  if p.cursor.isNil:
+  if s.cursor.isNil:
     echo "Setting cursor shape"
-    p.cursor = p.cursor_manager.wp_cursor_shape_manager_v1_get_pointer(pointer)
+    s.cursor = s.cursor_manager.wp_cursor_shape_manager_v1_get_pointer(pointer)
 
-  p.cursor.wp_cursor_shape_device_v1_set_shape(serial, wp_cursor_shape_device_v1_shape.WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT.ord)
+  s.cursor.wp_cursor_shape_device_v1_set_shape(serial, wp_cursor_shape_device_v1_shape.WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT.ord)
 
 # Leave Surface
 proc pointerHandleLeave(
     data: pointer, pointer: ptr wl_pointer, serial: uint32, surface: ptr wl_surface
 ) {.cdecl.} =
-  #p.pointer.event = Event.leave
+  #s.pointer.event = Event.leave
   echo "[Pointer] Left surface"
 
-  pUp.destroyPopup()
-  pUp.widgetNum = 0
+  destroyPopup(addr tt)
+  tt.widgetNum = 0
 
 var lastScrollTime = getMonoTime()
 
@@ -148,14 +148,14 @@ proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
       else:
         newNum = 0
 
-    if newNum == pUp.widgetNum:
+    if newNum == tt.widgetNum:
       discard
     elif newNum == 0:
-      pUp.destroyPopup()
-      pUp.widgetNum = 0
+      destroyPopup(addr tt)
+      tt.widgetNum = 0
     else:
-      pUp.destroyPopup()
-      pUp.widgetNum = newNum
+      destroyPopup(addr tt)
+      tt.widgetNum = newNum
       let now = getMonoTime()
       if now > lastPopupTime + initDuration(milliseconds = 1500):
         sleep(600)

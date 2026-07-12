@@ -8,7 +8,7 @@
 proc wl_buffer_release(data: pointer, buffer: ptr wlBuffer) {.cdecl.} =
   # Sent by the compositor when it's no longer using this buffer
   echo "buffer release"
-  #destroy(wl_buffer)
+  #wl_buffer_destroy(buffer)
 
 let wl_buffer_listener = wlBufferListener(release: wl_buffer_release)
 
@@ -60,38 +60,40 @@ proc createShmFile(size: int32): cint =
 #                                    Get Buffer
 # ----------------------------------------------------------------------------------------
 
-proc getBuffer[T](s: T, img: Image): ptr wlBuffer =
-  if s.pixelData != nil:
+proc getBuffer(data: pointer, img: Image): ptr wlBuffer =
+  let surface = cast[ptr Surface](data)
+
+  if surface.pixelData != nil:
     echo "data unmap"
-    discard munmap(s.pixelData, s.pixelDataSize)
+    discard munmap(surface.pixelData, surface.pixelDataSize)
 
   let width = int32(img.width)
   let height = int32(img.height)
-
   let stride = width * 4
-  s.pixelDataSize = stride * height
+
+  surface.pixelDataSize = stride * height
 
   # Allocate Shared Memory (mmap)
-  let fd = createShmFile(s.pixelDataSize)
+  let fd = createShmFile(surface.pixelDataSize)
   if fd == -1:
     return nil
 
-  s.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
-    nil, s.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
+  surface.pixelData = cast[ptr UncheckedArray[uint32]](mmap(
+    nil, surface.pixelDataSize, PROT_READ or PROT_WRITE, MAP_SHARED, fd, 0
   ))
 
-  if s.pixelData == MAP_FAILED:
+  if surface.pixelData == MAP_FAILED:
     echo "mmap failed"
     discard close(fd)
     return nil
 
-  let memPool = p.shMem.wl_shm_create_pool(int32(fd), s.pixelDataSize)
+  let memPool = s.shMem.wl_shm_create_pool(int32(fd), surface.pixelDataSize)
 
-  if s.buffer != nil:
+  if surface.buffer != nil:
     echo "buffer destroy"
-    wl_buffer_destroy(s.buffer)
+    wl_buffer_destroy(surface.buffer)
 
-  s.buffer = memPool.wl_shm_pool_create_buffer(
+  surface.buffer = memPool.wl_shm_pool_create_buffer(
     int32(0),
     int32(width),
     int32(height),
@@ -101,14 +103,14 @@ proc getBuffer[T](s: T, img: Image): ptr wlBuffer =
 
   # Copy to shared buffer
   # Pixie stores data as a seq[ColorRGBX], which is 4 bytes per pixel
-  copyMem(s.pixelData, img.data[0].addr, s.pixelDataSize)
+  copyMem(surface.pixelData, img.data[0].addr, surface.pixelDataSize)
 
   # Cleanup
   wl_shm_pool_destroy(memPool)
   discard close(fd)
   #discard munmap(s.pixelData, s.pixelDataSize)
 
-  discard s.buffer.wl_buffer_add_listener(addr wl_buffer_listener, nil)
+  discard surface.buffer.wl_buffer_add_listener(addr wl_buffer_listener, nil)
 
-  return s.buffer
+  return surface.buffer
 
