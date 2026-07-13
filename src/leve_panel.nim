@@ -184,10 +184,13 @@ var tt = Tooltip()
 var m = Menu()
 setCurrentDir(getHomeDir())
 
-proc updateTooltip(tooltip: ptr Tooltip)
 proc updateWidget(w: ptr Widget)
-include "leve-panel"/[config, favorites, clock, volume, menu, power]
-include "leve-panel"/[workspaces, sway, desktop_indicator, buffer, panel, tooltip, output, callbacks]
+proc updateTooltip(tooltip: ptr Tooltip)
+proc createPopup(w: Widget, data: pointer)
+
+include "leve-panel"/[config, output, buffer, workspaces, sway]
+include "leve-panel"/"widgets"/[favorites, clock, volume, menu, power, desktop]
+include "leve-panel"/[menu, tooltip, popup, callbacks, panel]
 
 # ----------------------------------------------------------------------------------------
 #                                    Registry

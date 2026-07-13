@@ -5,11 +5,11 @@
 #
 # ========================================================================================
 
-proc getDate(): string =
+proc getClockTT(): string =
   let now = now()
-  let date = now.format("dddd, MMMM d")
+  let text = now.format("dddd, MMMM d")
 
-  return date
+  return text
 
 proc getTime(): string =
   let now = now()

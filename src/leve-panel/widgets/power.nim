@@ -61,4 +61,3 @@ proc newPowerWidget(i: PanelItem, pos: float32): Widget =
   var widget: Widget = Widget(widgetType: power, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget
-
