@@ -1,13 +1,13 @@
 # ========================================================================================
 #
-#                            Leve Panel
-#                          Default Config
+#                                   Leve Panel
+#                                 Default Config
 #
 # ========================================================================================
 
 # Panel Settings
 [Panel]
-pos = "bottom"
+pos = "bottom"  # "top", "bottom", "left", "right"
 color = "#070C1E"
 size = 46
 icon_size = 32
@@ -40,11 +40,10 @@ exec = "google-chrome"
 terminal = false
 
 
-# Valid styles for desktop indicator are
-# "num", "numbers", and "dots"
+# Center Widgets
 [[Center]]
 widget = "desktop"
-style = "dots"
+style = "dots" # "num", "numbers", "dots"
 
 
 # Widgets on right side
