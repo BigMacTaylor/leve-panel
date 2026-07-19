@@ -11,7 +11,7 @@ proc newMenuImg(menu: ptr Menu): Image =
   let width = menu.width
   let height = menu.height
 
-  # Draw tooltip background
+  # Draw menu background
   var img = newImage(width, height)
   img.fill(rgba(40, 40, 40, 255)) # Dark gray
 

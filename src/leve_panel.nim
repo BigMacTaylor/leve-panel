@@ -1,9 +1,11 @@
 # ========================================================================================
 #
 #                                   Leve Panel
-#                          version 1.0.8 by Mac_Taylor
+#                                 by Mac_Taylor
 #
 # ========================================================================================
+
+const version = "1.1.0"
 
 import
   pkg/nayland/types/protocols/core/[shm_pool],
@@ -15,7 +17,7 @@ import
 import "wayland"/[xdg_output_unstable_v1]
 import "wayland"/[ext_workspace_v1]
 
-import std/[os, posix, strutils, osproc, times]
+import std/[os, posix, parseopt, strutils, osproc, times]
 import std/[nativesockets, net, monotimes]
 import subprocess
 import parsetoml
@@ -188,7 +190,7 @@ proc updateWidget(w: ptr Widget)
 proc updateTooltip(tooltip: ptr Tooltip)
 proc createPopup(w: Widget, data: pointer)
 
-include "leve-panel"/[config, output, buffer, workspaces, sway]
+include "leve-panel"/[config, arg_parse, output, buffer, workspaces, sway]
 include "leve-panel"/"widgets"/[favorites, clock, volume, menu, power, desktop]
 include "leve-panel"/[menu, tooltip, popup, callbacks, panel]
 
@@ -478,8 +480,11 @@ proc cleanup() {.noconv.} =
 when isMainModule:
   setControlCHook(cleanup)
 
-  let config = initFile("config.toml", defaultConfig)
-  parseConfig(config)
+  if paramCount() > 2:
+    echo "Error: Too many paramters entered"
+    quit(1)
+  else:
+    parseArgs()
 
   main()
 
