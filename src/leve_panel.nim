@@ -486,5 +486,8 @@ when isMainModule:
   else:
     parseArgs()
 
+  volProcess = startSubprocess("pactl", ["subscribe"], SubprocessOptions(useStdout: true))
+  checkVolStatus()
+
   main()
 

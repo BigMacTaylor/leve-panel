@@ -1,16 +1,14 @@
 # ========================================================================================
 #
 #                                   Leve Panel
-#                                 Volume widget
+#                                 Volume Widget
 #
 # ========================================================================================
 
 var volMute = false
 var cur_vol = 100
 var volState = VolState.mute
-
-let opts = SubprocessOptions(useStdout: true)
-let volProcess = startSubprocess("pactl", ["subscribe"], opts)
+var volProcess: Subprocess
 
 proc getSinkStatus(): bool =
   let cmd = "pactl get-sink-volume @DEFAULT_SINK@ > /dev/null"
@@ -72,15 +70,16 @@ proc getVolState(): VolState =
   else: # cur_vol > 75
     return VolState.high
 
-echo "\nGetting volume status... \n"
-if getSinkStatus():
-  volMute = getMute()
-  cur_vol = getVolume()
-  volState = getVolState()
-else:
-  volProcess.close()
-  echo "\nError: Could not get sink status."
-  echo "Is pulse-audio running?"
+proc checkVolStatus() =
+  echo "\nChecking volume status... \n"
+  if getSinkStatus():
+    volMute = getMute()
+    cur_vol = getVolume()
+    volState = getVolState()
+  else:
+    volProcess.close()
+    echo "\nError: Could not get sink status."
+    echo "Is pulse-audio running?"
 
 # ----------------------------------------------------------------------------------------
 #                                    Create Image
