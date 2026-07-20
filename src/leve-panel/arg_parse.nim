@@ -5,7 +5,7 @@
 #
 # ========================================================================================
 
-proc parseArgs() =
+proc parseArgs(): string =
   const helpMsg = """
 Leve-Panel:
   A lightweight panel for Wayland compositors.
@@ -57,16 +57,15 @@ Options:
       echo "Use -h for help \n"
       quit(1)
 
-  if config != "":
-    if not ('/' in config):
-      config = getConfigDir() / config
-    if fileExists(config):
-      parseConfig(config)
-    else:
-      echo "Error: Invalid config path"
-      quit(1)
-  else:
+  if config == "":
     const defaultConfig: string = staticRead("default.toml")
     config = initFile("default.toml", defaultConfig)
-    parseConfig(config)
+  else:
+    if not ('/' in config):
+      config = getConfigDir() / config
+    if not fileExists(config):
+      echo "Error: Invalid config path"
+      quit(1)
+
+  return config
 

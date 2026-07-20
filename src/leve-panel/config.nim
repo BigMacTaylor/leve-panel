@@ -63,7 +63,49 @@ proc getFont(): string =
 
 var fontPath = getFont()
 
-proc getItems(items: var seq[PanelItem], elements: seq[TomlValueRef]) =
+proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
+  echo p.config
+  let config =
+    try:
+      parseFile(p.config)
+    except:
+      return
+
+  if not config.hasKey(key):
+    return
+
+  let elements = config[key].getElems()
+  var items: seq[PanelItem]
+
+  for elem in elements:
+    var item: PanelItem
+    if elem.hasKey("widget"):
+      try:
+        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      except:
+        continue
+    else: continue
+
+    if item.widget == WidgetType.desktop:
+      if elem.hasKey("style"):
+        try:
+          item.style = parseEnum[Indicator](elem["style"].getStr())
+        except:
+          continue
+      else: continue
+
+    if elem.hasKey("icon"):
+      item.icon = getIconPath(elem["icon"].getStr())
+    if elem.hasKey("exec"):
+      item.exec = elem["exec"].getStr()
+    if elem.hasKey("terminal"):
+      item.terminal = elem["terminal"].getBool()
+
+    items.add(item)
+
+  return items
+
+proc checkElems(elements: seq[TomlValueRef]) =
   for elem in elements:
     var item: PanelItem
     if elem.hasKey("widget"):
@@ -82,15 +124,6 @@ proc getItems(items: var seq[PanelItem], elements: seq[TomlValueRef]) =
           echo "Config Error: Invalid desktop style \"", elem["style"].getStr(), "\""
           continue
       else: continue
-
-    if elem.hasKey("icon"):
-      item.icon = getIconPath(elem["icon"].getStr())
-    if elem.hasKey("exec"):
-      item.exec = elem["exec"].getStr()
-    if elem.hasKey("terminal"):
-      item.terminal = elem["terminal"].getBool()
-
-    items.add(item)
 
 proc parseConfig(configFile: string) =
   echo "\nReading config... \n"
@@ -131,16 +164,16 @@ proc parseConfig(configFile: string) =
     if panel.hasKey("scroll_down"):
       p.scrollDownCmd = panel["scroll_down"].getStr()
 
-  # Get Panel Items from Elements
+  # Check Panel Items
   if config.hasKey("Left"):
-    let leftElems = config["Left"].getElems()
-    leftItems.getItems(leftElems)
+    let elements = config["Left"].getElems()
+    checkElems(elements)
 
   if config.hasKey("Center"):
-    let centerElems = config["Center"].getElems()
-    centerItems.getItems(centerElems)
+    let elements = config["Center"].getElems()
+    checkElems(elements)
 
   if config.hasKey("Right"):
-    let rightElems = config["Right"].getElems()
-    rightItems.getItems(rightElems)
+    let elements = config["Right"].getElems()
+    checkElems(elements)
 

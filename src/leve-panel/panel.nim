@@ -86,6 +86,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Add Left Widgets
   var pos: float32 = 0
+  let leftItems = panel.getItems("Left")
   for item in leftItems:
     var widget: Widget = createWidget(item, pos)
 
@@ -105,6 +106,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Get pos for Center Items
   var centerItemsSize = 0
+  let centerItems = panel.getItems("Center")
   for item in centerItems:
     if item.widget == WidgetType.clock:
       centerItemsSize = centerItemsSize + (2 * p.size)
@@ -143,6 +145,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
     pos = float32(height - p.size)
 
   # Add Right Widgets
+  let rightItems = panel.getItems("Right")
   for item in rightItems:
     if item.widget == WidgetType.clock:
       pos = pos - float32(p.size)
@@ -206,7 +209,7 @@ proc configureSurface(
   panel.surface.wl_surface_attach(buffer, 0, 0)
   panel.surface.wl_surface_commit()
 
-let surfaceListener = zwlrLayerSurfaceV1Listener(
+const surfaceListener = zwlrLayerSurfaceV1Listener(
   configure: configureSurface,
   closed: surfaceClose
 )

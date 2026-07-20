@@ -1,7 +1,7 @@
 # ========================================================================================
 #
 #                                   Leve Panel
-#                                 by Mac_Taylor
+#                                  by Mac Taylor
 #
 # ========================================================================================
 
@@ -43,6 +43,12 @@ type PanelPos = enum
   bottom
   left
   right
+
+type Layer = enum
+  background
+  bottom
+  top
+  overlay
 
 type DisplayInfo = ref object
   name: string
@@ -87,9 +93,11 @@ type Surface = ref object of RootObj
   surface: ptr wl_surface
 
 type Panel = ref object of Surface
+  config: string
+  layer: Layer = bottom
+  pos: PanelPos = bottom
   size: int32 = 46
   iconSize: int32 = 32
-  pos: PanelPos = PanelPos.bottom
   color: string = "#070C1E"
   scrollUpCmd: string
   scrollDownCmd: string
@@ -173,9 +181,6 @@ type WorkspaceData = object
 type imgProc = proc (curWS: int): Image
 
 var newDesktopImg: imgProc
-var leftItems: seq[PanelItem]
-var centerItems: seq[PanelItem]
-var rightItems: seq[PanelItem]
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
@@ -308,7 +313,7 @@ proc main() =
     cast[ptr zwlr_layer_shell_v1](s.layerShell),
     p.surface,
     nil,
-    cast[uint32](top),
+    cast[uint32](Layer.top),
     cstring("leve-panel"),
   ))
 
@@ -484,7 +489,8 @@ when isMainModule:
     echo "Error: Too many paramters entered"
     quit(1)
   else:
-    parseArgs()
+    p.config = parseArgs()
+    parseConfig(p.config)
 
   volProcess = startSubprocess("pactl", ["subscribe"], SubprocessOptions(useStdout: true))
   checkVolStatus()
