@@ -138,29 +138,69 @@ proc parseConfig(configFile: string) =
   # Get Panel Settings
   if config.hasKey("Panel"):
     let panel = config["Panel"]
+
+    if panel.hasKey("layer"):
+      try:
+        p.layer = parseEnum[Layer](panel["layer"].getStr())
+      except:
+        echo "Config Error: Invalid panel layer"
+
     if panel.hasKey("pos"):
       try:
         p.pos = parseEnum[PanelPos](panel["pos"].getStr())
       except:
         echo "Config Error: Invalid panel position"
+
+    if panel.hasKey("size"):
+      let size = int32(panel["size"].getFloat())
+      if size > 0:
+        p.size = size
+      else:
+        echo "Config Error: Invalid panel size"
+
+    if panel.hasKey("margin_top"):
+      p.marginTop = int32(panel["margin_top"].getFloat())
+
+    if panel.hasKey("margin_bottom"):
+      p.marginBottom = int32(panel["margin_bottom"].getFloat())
+
+    if panel.hasKey("margin_left"):
+      p.marginLeft = int32(panel["margin_left"].getFloat())
+
+    if panel.hasKey("margin_right"):
+      p.marginRight = int32(panel["margin_right"].getFloat())
+
+    if panel.hasKey("exclusive_zone"):
+      p.exclusiveZone = int32(panel["exclusive_zone"].getFloat())
+    else:
+      case p.pos
+      of PanelPos.top:
+        p.exclusiveZone = (p.size + p.marginBottom)
+      of PanelPos.bottom:
+        p.exclusiveZone = (p.size + p.marginTop)
+      of PanelPos.left:
+        p.exclusiveZone = (p.size + p.marginRight)
+      of PanelPos.right:
+        p.exclusiveZone = (p.size + p.marginLeft)
+
+    if panel.hasKey("icon_size"):
+      p.iconSize = int32(panel["icon_size"].getFloat())
+
+    # Keep icon size smaller than panel size
+    if (p.iconSize <= 0) or (p.iconSize > p.size):
+      echo "Config Error: Invalid icon size"
+      p.iconSize = p.size
+
     if panel.hasKey("color"):
       try:
         discard parseHtmlColor(panel["color"].getStr())
         p.color = panel["color"].getStr()
       except:
         echo "Config Error: Invalid background color"
-    if panel.hasKey("size"):
-      p.size = int32(panel["size"].getFloat())
-      if p.size <= 0:
-        echo "Config Error: Invalid panel size"
-    if panel.hasKey("icon_size"):
-      p.iconSize = int32(panel["icon_size"].getFloat())
-    # Keep icon size smaller than panel size
-    if (p.iconSize <= 0) or (p.iconSize > p.size):
-      echo "Config Error: Invalid icon size"
-      p.iconSize = p.size
+
     if panel.hasKey("scroll_up"):
       p.scrollUpCmd = panel["scroll_up"].getStr()
+
     if panel.hasKey("scroll_down"):
       p.scrollDownCmd = panel["scroll_down"].getStr()
 

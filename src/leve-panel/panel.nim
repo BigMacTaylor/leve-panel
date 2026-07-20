@@ -23,7 +23,7 @@ proc updateWidget(w: ptr Widget) =
     dataPos = w.startPos[0]
     for i in 0 ..< height:
       copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
-      dataPos = dataPos + displayInfo.width
+      dataPos = dataPos + p.width
       newDataPos = newDataPos + width
   else:
     dataPos = w.startPos[1] * width
@@ -67,12 +67,12 @@ proc drawPanelImg(panel: ptr Panel): Image =
   echo "\nDrawing panel... \n"
 
   let width = if panel.pos == top or panel.pos == bottom:
-      displayInfo.width
+      panel.width
     else: panel.size
 
   let height = if panel.pos == top or panel.pos == bottom:
       panel.size
-    else: displayInfo.height
+    else: panel.height
 
   # Draw panel background
   let img = newImage(width, height)
@@ -202,6 +202,8 @@ proc configureSurface(
 
   # Render framebuffer
   let panel = cast[ptr Panel](data)
+  panel.width = int32(width)
+  panel.height = int32(height)
   let img = drawPanelImg(panel)
   let buffer = panel.getBuffer(img)
 

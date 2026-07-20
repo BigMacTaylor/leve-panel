@@ -97,6 +97,12 @@ type Panel = ref object of Surface
   layer: Layer = bottom
   pos: PanelPos = bottom
   size: int32 = 46
+  length: float = 1.00
+  marginTop: int32 = 0
+  marginBottom: int32 = 0
+  marginLeft: int32 = 0
+  marginRight: int32 = 0
+  exclusiveZone: int32
   iconSize: int32 = 32
   color: string = "#070C1E"
   scrollUpCmd: string
@@ -214,7 +220,7 @@ proc globalRegistry(
 
   elif $(intf) == "zxdg_output_manager_v1":
     state.outputMan = cast[ptr zxdgOutputManagerV1](registry.wl_registry_bind(
-      id, addr zxdg_output_manager_v1_interface, 1))
+      id, addr zxdg_output_manager_v1_interface, 2))
 
   elif $(intf) == "wl_seat":
     state.seat = cast[ptr wl_seat](registry.wl_registry_bind(id, addr wl_seat_interface, 6))
@@ -237,7 +243,7 @@ proc globalRegistry(
 
   elif $(intf) == "zwlr_layer_shell_v1":
     state.layerShell = cast[ptr zwlrLayerShellV1](registry.wl_registry_bind(
-      id, addr zwlr_layer_shell_v1_interface, 1))
+      id, addr zwlr_layer_shell_v1_interface, 4))
 
   elif $(intf) == "ext_workspace_manager_v1":
     state.ws_manager = cast[ptr ext_workspace_manager_v1](registry.wl_registry_bind(id, addr ext_workspace_manager_v1_interface, 1))
@@ -283,14 +289,14 @@ proc main() =
     #destroy(s.display)
     return
 
-  if s.output == nil:
+  if s.output == nil or s.outputMan == nil:
     echo "Error: Failed to get output"
     wl_registry_destroy(s.registry)
     #destroy(s.display)
     return
 
   # Bind output to get display dimensions
-  s.output.bindOutput(s.outputMan)
+  s.outputMan.bindOutput(s.output)
 
   # Create surface
   p.surface = s.compositor.wl_compositor_create_surface()
@@ -313,7 +319,7 @@ proc main() =
     cast[ptr zwlr_layer_shell_v1](s.layerShell),
     p.surface,
     nil,
-    cast[uint32](Layer.top),
+    cast[uint32](p.layer),
     cstring("leve-panel"),
   ))
 
@@ -326,23 +332,26 @@ proc main() =
 
   # Set size horizontal or vertical
   if p.pos == top or p.pos == bottom:
-    cast[ptr zwlr_layer_surface_v1](s.layerSurface).zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
+    s.layerSurface.zwlr_layer_surface_v1_set_size(uint32(displayInfo.width), uint32(p.size))
   else:
-    cast[ptr zwlr_layer_surface_v1](s.layerSurface).zwlr_layer_surface_v1_set_size(uint32(p.size), uint32(displayInfo.height))
+    s.layerSurface.zwlr_layer_surface_v1_set_size(uint32(p.size), uint32(displayInfo.height))
 
   # Push other windows out of the way
-  s.layerSurface.zwlr_layer_surface_v1_set_exclusive_zone(p.size)
+  s.layerSurface.zwlr_layer_surface_v1_set_exclusive_zone(p.exclusiveZone)
 
   # Set position on the screen
   case p.pos
   of PanelPos.top:
-    s.layerSurface.zwlr_layer_surface_v1_set_anchor(13)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(13) # 13, 1
   of PanelPos.bottom:
-    s.layerSurface.zwlr_layer_surface_v1_set_anchor(14)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(14) # 14, 2
   of PanelPos.left:
-    s.layerSurface.zwlr_layer_surface_v1_set_anchor(7)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(7) # 7, 4
   of PanelPos.right:
-    s.layerSurface.zwlr_layer_surface_v1_set_anchor(11)
+    s.layerSurface.zwlr_layer_surface_v1_set_anchor(11) # 11, 8
+
+  # Margins around the panel's edges (top, right, bottom, left)
+  s.layerSurface.zwlr_layer_surface_v1_set_margin(p.marginTop, p.marginRight, p.marginBottom, p.marginLeft)
 
   # Listen for configure event
   discard s.layerSurface.zwlr_layer_surface_v1_add_listener(addr surfaceListener, addr p)

@@ -8,11 +8,17 @@
 # Panel Settings
 [Panel]
 pos = "bottom"  # "top", "bottom", "left", "right"
-color = "#070C1E"
-size = 46
+layer = "bottom"  # "background", "bottom", "top", "overlay"
+size = 46 # pixels
+margin_top = 4
+margin_bottom = 0
+margin_left = 10
+margin_right = 10
 icon_size = 32
+color = "#070C1E" # Hex Color
 scroll_up = "swaymsg workspace prev"
 scroll_down = "swaymsg workspace next"
+#exclusive_zone = 52 # reserve space, defaults to size of panel
 
 
 # Widgets appear left to right
