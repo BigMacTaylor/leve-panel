@@ -113,7 +113,7 @@ type Panel = ref object of Surface
   exclusiveZone: int32
   iconSize: int32 = 32
   radius: float = 0.0
-  color: string = "#070C1E"
+  color: Color = parseHtmlColor("#070C1E")
   scrollUpCmd: string
   scrollDownCmd: string
 

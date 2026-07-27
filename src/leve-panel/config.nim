@@ -204,8 +204,7 @@ proc parseConfig(configFile: string) =
 
     if panel.hasKey("color"):
       try:
-        discard parseHtmlColor(panel["color"].getStr())
-        p.color = panel["color"].getStr()
+        p.color = parseHtmlColor(panel["color"].getStr())
       except:
         echo "Config Error: Invalid background color"
 

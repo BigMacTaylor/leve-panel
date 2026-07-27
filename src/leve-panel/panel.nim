@@ -74,7 +74,7 @@ proc roundBgCorners(ctx: Context, side: Side, width, height: int32) =
     discard
 
   # Fill background color
-  ctx.fillStyle = parseHtmlColor(p.color)
+  ctx.fillStyle = p.color
   ctx.fill()
 
 proc updateWidget(w: ptr Widget) =
@@ -87,7 +87,7 @@ proc updateWidget(w: ptr Widget) =
 
   # Draw widget background
   if w.roundedSide == none:
-    newImgData.fill(parseHtmlColor(p.color))
+    newImgData.fill(p.color)
   else:
     ctx.roundBgCorners(w.roundedSide, width, height)
 
@@ -165,7 +165,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
   let r = p.radius
 
   # Draw the panel background
-  ctx.fillStyle = parseHtmlColor(p.color)
+  ctx.fillStyle = p.color
   ctx.fillRoundedRect(rect(xy, wh), r)
 
   # Zero out Widgets to avoid duplicates
