@@ -98,7 +98,7 @@ proc getBuffer(data: pointer, img: Image): ptr wlBuffer =
     int32(width),
     int32(height),
     int32(stride),
-    uint32(ShmFormat.XBGR8888),
+    uint32(ShmFormat.ABGR8888),
   )
 
   # Copy to shared buffer

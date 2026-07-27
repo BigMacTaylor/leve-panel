@@ -5,17 +5,96 @@
 #
 # ========================================================================================
 
+proc roundBgCorners(ctx: Context, side: Side, width, height: int32) =
+  # Define context dimensions and corner radius
+  let w = float32(width)
+  let h = float32(height)
+  let x = 0.0
+  let y = 0.0
+  let r = p.radius
+
+  case side
+  of top:
+    ctx.beginPath()
+    ctx.moveTo(x, y + r) 
+    ctx.arcTo(x, y, x + r, y, r)
+    ctx.lineTo(x + w - r, y) 
+    ctx.arcTo(x + w, y, x + w, y + r, r)
+    ctx.lineTo(x + w, y + h)
+    ctx.lineTo(x, y + h)
+    ctx.closePath()
+
+  of bottom:
+    ctx.beginPath()
+    ctx.moveTo(x, y) 
+    ctx.lineTo(x + w, y)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+    ctx.lineTo(x + r, y + h)
+    ctx.arcTo(x, y + h, x, y + h - r, r)
+    ctx.lineTo(x, y)
+    ctx.closePath()
+
+  of left:
+    ctx.beginPath()
+    ctx.moveTo(x + r, y) 
+    ctx.lineTo(x + w, y)
+    ctx.lineTo(x + w, y + h)
+    ctx.lineTo(x + r, y + h)
+    ctx.arcTo(x, y + h, x, y + h - r, r)
+    ctx.lineTo(x, y + r)
+    ctx.arcTo(x, y, x + r, y, r)
+    ctx.closePath()
+
+  of right:
+    ctx.beginPath()
+    ctx.moveTo(x, y) 
+    ctx.lineTo(x + w - r, y)
+    ctx.arcTo(x + w, y, x + w, y + r, r)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+    ctx.lineTo(x, y + h)
+    ctx.lineTo(x, y)
+    ctx.closePath()
+
+  of all:
+    ctx.beginPath()
+    ctx.moveTo(x, y + r) 
+    ctx.arcTo(x, y, x + r, y, r)
+    ctx.lineTo(x + w - r, y)
+    ctx.arcTo(x + w, y, x + w, y + r, r)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+    ctx.lineTo(x + r, y + h)
+    ctx.arcTo(x, y + h, x, y + h - r, r)
+    ctx.lineTo(x, y + r)
+    ctx.closePath()
+
+  else:
+    discard
+
+  # Fill background color
+  ctx.fillStyle = parseHtmlColor(p.color)
+  ctx.fill()
+
 proc updateWidget(w: ptr Widget) =
   let width = int32(w.endPos[0] - w.startPos[0])
   let height = int32(w.endPos[1] - w.startPos[1])
 
-  # Draw damaged area
+  # Create new widget image
   let newImgData = newImage(width, height)
-  newImgData.fill(parseHtmlColor(p.color))
   let ctx = newImgData.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    newImgData.fill(parseHtmlColor(p.color))
+  else:
+    ctx.roundBgCorners(w.roundedSide, width, height)
+
+  # Draw widget icon
   ctx.drawImage(w.img, 0, 0)
 
-  # Copy new area to image data
+  # Copy new image to image data
   var dataPos = 0
   var newDataPos = 0
 
@@ -74,21 +153,38 @@ proc drawPanelImg(panel: ptr Panel): Image =
       panel.size
     else: panel.height
 
-  # Draw panel background
+  # Create transparent image
   let img = newImage(width, height)
-  img.fill(parseHtmlColor(p.color))
+  img.fill(rgba(0, 0, 0, 0))
 
   let ctx = img.newContext()
+
+  # Define panel dimensions and corner radius
+  let xy = vec2(0, 0)
+  let wh = vec2(float32(width), float32(height))
+  let r = p.radius
+
+  # Draw the panel background
+  ctx.fillStyle = parseHtmlColor(p.color)
+  ctx.fillRoundedRect(rect(xy, wh), r)
 
   # Zero out Widgets to avoid duplicates
   if widgets.len > 0:
     widgets = @[]
 
   # Add Left Widgets
+  var endWidget = true
   var pos: float32 = 0
   let leftItems = panel.getItems("Left")
   for item in leftItems:
     var widget: Widget = createWidget(item, pos)
+
+    if endWidget:
+      if panel.pos == top or panel.pos == bottom:
+        widget.roundedSide = left
+      else:
+        widget.roundedSide = top
+    endWidget = false
 
     widgets.add(widget)
 
@@ -145,6 +241,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
     pos = float32(height - p.size)
 
   # Add Right Widgets
+  endWidget = true
   let rightItems = panel.getItems("Right")
   for item in rightItems:
     if item.widget == WidgetType.clock:
@@ -153,6 +250,13 @@ proc drawPanelImg(panel: ptr Panel): Image =
       pos = pos - float32(3 * p.size)
 
     var widget: Widget = createWidget(item, pos)
+
+    if endWidget:
+      if panel.pos == top or panel.pos == bottom:
+        widget.roundedSide = right
+      else:
+        widget.roundedSide = bottom
+    endWidget = false
 
     widgets.add(widget)
 

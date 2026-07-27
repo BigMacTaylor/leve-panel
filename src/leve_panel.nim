@@ -38,6 +38,14 @@ proc timerfd_settime(
   fd: cint, flags: cint, newVal: ptr ITimerspec, oldVal: ptr ITimerspec
 ): cint {.importc, header: "<sys/timerfd.h>".}
 
+type Side = enum
+  none
+  top
+  bottom
+  left
+  right
+  all
+
 type PanelPos = enum
   top
   bottom
@@ -104,6 +112,7 @@ type Panel = ref object of Surface
   marginRight: int32 = 0
   exclusiveZone: int32
   iconSize: int32 = 32
+  radius: float = 0.0
   color: string = "#070C1E"
   scrollUpCmd: string
   scrollDownCmd: string
@@ -168,6 +177,7 @@ type Widget = ref object
   widgetType: WidgetType
   startPos: array[2, int]
   endPos: array[2, int]
+  roundedSide: Side
   img: Image
   callBacks: CallBacks
 

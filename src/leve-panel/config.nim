@@ -191,6 +191,17 @@ proc parseConfig(configFile: string) =
       echo "Config Error: Invalid icon size"
       p.iconSize = p.size
 
+    if panel.hasKey("roundness"):
+      if int32(panel["roundness"].getFloat()) > 100:
+        echo "Config Error: Max roundness = '100'"
+        p.radius = 50.0
+      else:
+        p.radius = int32(panel["roundness"].getFloat()) / 2
+
+    # Keep radius smaller than half of panel size
+    if p.radius > (float32(p.size) * 0.5):
+      p.radius = float32(p.size) * 0.5
+
     if panel.hasKey("color"):
       try:
         discard parseHtmlColor(panel["color"].getStr())
