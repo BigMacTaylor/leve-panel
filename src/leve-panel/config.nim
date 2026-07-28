@@ -64,7 +64,6 @@ proc getFont(): string =
 var fontPath = getFont()
 
 proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
-  echo p.config
   let config =
     try:
       parseFile(p.config)

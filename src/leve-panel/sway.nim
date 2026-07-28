@@ -126,6 +126,34 @@ proc readExact(fd: cint, bytesToRead: int): string =
       break
     totalRead += chunk
 
+func parseNum(text: string): int =
+  var numStr = ""
+
+  for c in text:
+    if c.isDigit:
+      numStr.add(c)
+    elif numStr.len > 0:
+      break
+
+  if numStr.len == 0:
+    raise newException(ValueError, "No digits found in version string: " & text)
+ 
+  return parseInt(numStr)
+
+func getVersionNum(s: string): tuple[major: int, minor: int, patch: int] =
+  let parts = s.split('.')
+
+  if (parts.len < 2) or (parts.len > 3):
+    raise newException(ValueError, "Invalid version format: " & s)
+
+  let major = parts[0].parseNum()
+  let minor = parts[1].parseNum()
+  let patch = if parts.len > 2:
+    parts[2].parseNum()
+  else: 0
+
+  return (major, minor, patch)
+
 proc getSwayFD(): cint =
   # Get the Sway Socket Path
   let socketPath = getEnv("SWAYSOCK")
@@ -144,13 +172,13 @@ proc getSwayFD(): cint =
   let verString = parts[^1]
 
   let version = try:
-    parseFloat(verString.strip)
-  except ValueError:
+    getVersionNum(verString.strip)
+  except:
     echo "Error: Invalid Sway version number"
     return -1
 
   # If Sway version > 1.12 use ext_workspace protocol
-  if version >= 1.12:
+  if version >= getVersionNum("1.12"):
     return -1
 
   # Create UNIX FD for sway
