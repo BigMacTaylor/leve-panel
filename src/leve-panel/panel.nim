@@ -144,6 +144,9 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
 
 proc drawPanelImg(panel: ptr Panel): Image =
   echo "\nDrawing panel... \n"
+  debug "pos: ", panel.pos
+  debug "width: ", panel.width
+  debug "height: ", panel.height
 
   let width = if panel.pos == top or panel.pos == bottom:
       panel.width
@@ -155,8 +158,6 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Create transparent image
   let img = newImage(width, height)
-  img.fill(rgba(0, 0, 0, 0))
-
   let ctx = img.newContext()
 
   # Define panel dimensions and corner radius
@@ -175,6 +176,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
   # Add Left Widgets
   var endWidget = true
   var pos: float32 = 0
+  debug "get left items"
   let leftItems = panel.getItems("Left")
   for item in leftItems:
     var widget: Widget = createWidget(item, pos)
@@ -202,6 +204,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Get pos for Center Items
   var centerItemsSize = 0
+  debug "get center items"
   let centerItems = panel.getItems("Center")
   for item in centerItems:
     if item.widget == WidgetType.clock:
@@ -242,6 +245,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Add Right Widgets
   endWidget = true
+  debug "get right items"
   let rightItems = panel.getItems("Right")
   for item in rightItems:
     if item.widget == WidgetType.clock:

@@ -88,19 +88,7 @@ proc onFavClick(data: pointer) =
   echo "on click"
   exec(cast[ptr PanelItem](data))
 
-proc newFavWidget(fav: PanelItem, pos: float32): Widget =
-  let startPos: array[2, int] =
-    if p.pos == top or p.pos == bottom:
-      [int(pos), 0]
-    else:
-      [0, int(pos)]
-
-  let endPos: array[2, int] =
-    if p.pos == top or p.pos == bottom:
-      [int(pos) + int(p.size), int(p.size)]
-    else:
-      [int(p.size), int(pos) + int(p.size)]
-
+proc newFavImg(fav: PanelItem): Image =
   let padding = (p.size - p.iconSize) / 2
 
   # Create Favorite Image
@@ -138,6 +126,24 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
   # Resize Icon
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
   img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+
+  return img
+
+proc newFavWidget(fav: PanelItem, pos: float32): Widget =
+  let startPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos), 0]
+    else:
+      [0, int(pos)]
+
+  let endPos: array[2, int] =
+    if p.pos == top or p.pos == bottom:
+      [int(pos) + int(p.size), int(p.size)]
+    else:
+      [int(p.size), int(pos) + int(p.size)]
+
+  # Create Favorite Image
+  let img = newFavImg(fav)
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onFavClick(addr fav))

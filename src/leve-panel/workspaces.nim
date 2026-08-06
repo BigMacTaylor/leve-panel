@@ -60,7 +60,7 @@ proc onWsRemove(data: pointer; handle: ptr ext_workspace_handle_v1) {.cdecl.} =
       workspaces.delete(i)
       return
 
-let workspaceListener = ext_workspace_handle_v1_listener(
+const workspaceListener = ext_workspace_handle_v1_listener(
   id: onWsID,
   name: onWsNameChange,
   coordinates: onWsCoord,
@@ -102,7 +102,7 @@ proc onManagerFinished(data: pointer, manager: ptr ext_workspace_manager_v1) {.c
   echo "[WS-Manager] Session finished by compositor."
 
 # Statically assign callbacks to workspace manager
-let managerListener = ext_workspace_manager_v1_listener(
+const managerListener = ext_workspace_manager_v1_listener(
   workspace_group: onWsGroup,
   workspace: onWsEvent,
   done: onWsEventDone,

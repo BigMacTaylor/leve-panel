@@ -248,7 +248,7 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
       [int(p.size), int(pos) + int(p.size)]
 
   # Create volume Image
-  let icon = newVolImg()
+  let img = newVolImg()
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
@@ -263,6 +263,6 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
     callBacks.add(scrollDown)
 
   # Create widget
-  var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: icon, callBacks: callBacks)
+  var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
 
   return widget

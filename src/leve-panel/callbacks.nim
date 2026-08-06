@@ -9,8 +9,8 @@ func fixedToDouble(f: wl_fixed): float =
   return float(f / 256)
 
 func isWithin(w: Widget, x, y: int): bool =
-  if x >= w.startPos[0] and x <= w.endPos[0] and y >= w.startPos[1] and y <= w.endPos[1]:
-    return true
+  x >= w.startPos[0] and x <= w.endPos[0] and
+  y >= w.startPos[1] and y <= w.endPos[1]
 
 # Pointer Motion
 proc pointerHandleMotion(
@@ -35,33 +35,6 @@ proc pointerHandleButton(
   pointerState.btnPressed = (state != 0)
   pointerState.serial = serial
   pointerState.buttonPending = true
-
-  if state == 1 and button == 272:
-    for widget in widgets:
-      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
-        for cb in widget.callBacks:
-          if cb.event == Event.click_l:
-            echo "clicked"
-            cb.handler(addr widget)
-            return # Found it, stop looking
-
-  if state == 1 and button == 273:
-    for widget in widgets:
-      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
-        for cb in widget.callBacks:
-          if cb.event == Event.click_r:
-            echo "clicked"
-            cb.handler(addr widget)
-            return # Found it, stop looking
-
-  if state == 1 and button == 274:
-    for widget in widgets:
-      if widget.isWithin(int(pointerState.x), int(pointerState.y)):
-        for cb in widget.callBacks:
-          if cb.event == Event.click_m:
-            echo "clicked"
-            cb.handler(addr widget)
-            return # Found it, stop looking
 
 # Enter Surface
 proc pointerHandleEnter(
@@ -133,6 +106,8 @@ proc pointerHandleScroll(
 var lastPopupTime = getMonoTime()
 
 proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
+  echo "[Pointer] Frame event"
+
   # Process pointer frame data
   if pointerState.motionPending:
     echo "[Pointer] Mouse moved: ", pointerState.x, " ", pointerState.y
@@ -166,7 +141,37 @@ proc pointerHandleFrame(data: pointer, pointer: ptr wl_pointer) {.cdecl.} =
     echo "[Pointer] Button \'", pointerState.button, "\' pressed: ", pointerState.btnPressed, " ", pointerState.x, " ", pointerState.y
     pointerState.buttonPending = false
 
-  echo "[Pointer] Frame event done."
+    if pointerState.btnPressed:
+      case pointerState.button
+      of 272:
+        for widget in widgets:
+          if widget.isWithin(int(pointerState.x), int(pointerState.y)):
+            for cb in widget.callBacks:
+              if cb.event == Event.click_l:
+                debug "clicked left"
+                cb.handler(addr widget)
+                continue # Found it, stop looking
+
+      of 273:
+        for widget in widgets:
+          if widget.isWithin(int(pointerState.x), int(pointerState.y)):
+            for cb in widget.callBacks:
+              if cb.event == Event.click_r:
+                debug "clicked right"
+                cb.handler(addr widget)
+                continue # Found it, stop looking
+
+      of 274:
+        for widget in widgets:
+          if widget.isWithin(int(pointerState.x), int(pointerState.y)):
+            for cb in widget.callBacks:
+              if cb.event == Event.click_m:
+                debug "clicked middle"
+                cb.handler(addr widget)
+                continue # Found it, stop looking
+
+      else:
+        discard
 
 proc onAxisSource(data: pointer, pointer: ptr wl_pointer, axisSource: uint32) {.cdecl.} =
   discard
@@ -177,7 +182,7 @@ proc onAxisStop(data: pointer, pointer: ptr wl_pointer, time, axis: uint32) {.cd
 proc onAxisDiscrete(data: pointer, pointer: ptr wl_pointer, axis: uint32, discrete: int32) {.cdecl.} =
   discard
 
-let pointerListener = wlPointerListener(
+const pointerListener = wlPointerListener(
   enter: pointerHandleEnter,
   leave: pointerHandleLeave, # Handle leave if needed
   motion: pointerHandleMotion,

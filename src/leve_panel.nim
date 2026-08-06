@@ -105,7 +105,6 @@ type Panel = ref object of Surface
   layer: Layer = bottom
   pos: PanelPos = bottom
   size: int32 = 46
-  length: float = 1.00
   marginTop: int32 = 0
   marginBottom: int32 = 0
   marginLeft: int32 = 0
@@ -196,6 +195,10 @@ type WorkspaceData = object
 
 type imgProc = proc (curWS: int): Image
 
+template debug(args: varargs[untyped]) =
+  when not defined(release) and not defined(danger):
+    system.debugEcho(args)
+
 var newDesktopImg: imgProc
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
@@ -263,10 +266,36 @@ proc removeGlobalRegistry(data: pointer, registry: ptr wl_registry, name: uint32
   # This space deliberately left blank
   discard
 
-let registryListener = wlRegistryListener(
+const registryListener = wlRegistryListener(
   global: globalRegistry,
   global_remove: removeGlobalRegistry
 )
+
+# ----------------------------------------------------------------------------------------
+#                                    Setup FDs
+# ----------------------------------------------------------------------------------------
+
+proc getFDs(): array[3, TPollfd] =
+  # Get Wayland FD
+  let wl_fd = wl_display_get_fd(s.display)
+
+  # Setup Timer FD
+  let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
+  var spec: Itimerspec
+  spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
+  #spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.1s
+  spec.it_value.tv_sec = posix.Time(1) # Start in 1s
+  discard timerfd_settime(time_fd, 0, addr spec, nil)
+
+  # Get Sway FD, returns -1 if not running
+  let sway_fd: cint = getSwayFD()
+
+  var fds: array[3, TPollfd]
+  fds[0] = TPollfd(fd: wl_fd, events: POLLIN)
+  fds[1] = TPollfd(fd: time_fd, events: POLLIN)
+  fds[2] = TPollfd(fd: sway_fd, events: POLLIN)
+
+  return fds
 
 # ----------------------------------------------------------------------------------------
 #                                    Main
@@ -369,29 +398,7 @@ proc main() =
   # Commit surface
   p.surface.wl_surface_commit()
 
-  # ----------------------------------------------------------------------------------------
-  #                                  Setup FDs
-  # ----------------------------------------------------------------------------------------
-
-  # Get Wayland FD
-  let wl_fd = wl_display_get_fd(s.display)
-
-  # Setup Timer FD
-  let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
-  var spec: Itimerspec
-  spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
-  #spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.1s
-  spec.it_value.tv_sec = posix.Time(1) # Start in 1s
-  discard timerfd_settime(time_fd, 0, addr spec, nil)
-
-  # Get Sway FD, returns -1 if not running
-  let sway_fd: cint = getSwayFD()
-
-  var fds: array[3, TPollfd]
-  fds[0] = TPollfd(fd: wl_fd, events: POLLIN)
-  fds[1] = TPollfd(fd: time_fd, events: POLLIN)
-  fds[2] = TPollfd(fd: sway_fd, events: POLLIN)
-
+  let fds = getFDs()
   var curWS = 0
   var timeOut: cint = -1
   var swayEventsReady = false
@@ -403,6 +410,9 @@ proc main() =
   # ----------------------------------------------------------------------------------------
 
   while true:
+    debug GC_getStatistics()
+    debug "Mem: ", getOccupiedMem()
+
     # Prepare Wayland
     while prepareRead(s.display) != 0:
       discard dispatchPending(s.display)
@@ -422,10 +432,9 @@ proc main() =
     # Handle timer
     if (fds[1].revents and POLLIN) != 0:
       var expirations: uint64
-      discard read(time_fd, addr expirations, sizeof(expirations))
+      discard read(fds[1].fd, addr expirations, sizeof(expirations))
 
-      echo ""
-      echo "Tick: ", now().format("HH:mm:ss")
+      debug "\nTick: ", now().format("HH:mm:ss")
 
       # Update Clock widget
       if now().second == 0:
@@ -437,7 +446,7 @@ proc main() =
 
       # Check pipe data
       if volProcess.hasDataStdout():
-        echo "Update volume state"
+        debug "Update volume state"
         volMute = getMute()
         cur_vol = getVolume()
 
@@ -457,7 +466,7 @@ proc main() =
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
       # Read the 14-Byte Response Header
-      let headerBytes = readExact(sway_fd, 14)
+      let headerBytes = readExact(fds[2].fd, 14)
 
       # Verify magic string
       if headerBytes[0..5] != "i3-ipc":
@@ -472,7 +481,7 @@ proc main() =
         copyMem(addr replyType, addr headerBytes[10], 4)
 
         # Read JSON Payload
-        let json = readExact(sway_fd, int(replyLen))
+        let json = readExact(fds[2].fd, int(replyLen))
         curWS = getWsFromJson(json)
         swayEventsReady = true
         timeOut = 5
@@ -515,4 +524,3 @@ when isMainModule:
   checkVolStatus()
 
   main()
-

@@ -7,7 +7,7 @@
 
 proc wl_buffer_release(data: pointer, buffer: ptr wlBuffer) {.cdecl.} =
   # Sent by the compositor when it's no longer using this buffer
-  echo "buffer release"
+  debug "buffer release"
   #wl_buffer_destroy(buffer)
 
 let wl_buffer_listener = wlBufferListener(release: wl_buffer_release)
