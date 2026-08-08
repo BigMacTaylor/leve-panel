@@ -93,7 +93,7 @@ proc onWsEventDone(data: pointer, manager: ptr ext_workspace_manager_v1) {.cdecl
   # Update desktop widget
   for widget in widgets:
     if widget.widgetType == WidgetType.desktop:
-      widget.img = newDesktopImg(getCurrentWS())
+      drawDesktopImg(addr widget, getCurrentWS())
       updateWidget(addr widget)
   p.surface.wl_surface_commit()
 

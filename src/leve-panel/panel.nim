@@ -77,41 +77,31 @@ proc roundBgCorners(ctx: Context, side: Side, width, height: int32) =
   ctx.fillStyle = p.color
   ctx.fill()
 
+# ----------------------------------------------------------------------------------------
+#                                    Update Widgets
+# ----------------------------------------------------------------------------------------
+
 proc updateWidget(w: ptr Widget) =
   let width = int32(w.endPos[0] - w.startPos[0])
   let height = int32(w.endPos[1] - w.startPos[1])
 
-  # Create new widget image
-  let newImgData = newImage(width, height)
-  let ctx = newImgData.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    newImgData.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, width, height)
-
-  # Draw widget icon
-  ctx.drawImage(w.img, 0, 0)
-
   # Copy new image to image data
-  var dataPos = 0
-  var newDataPos = 0
+  let panelStride = p.width
+  var panelRowStart = w.startPos[1] * panelStride + w.startPos[0]
+  var widgetRowStart = 0
+  let rowBytes = width * 4
 
-  if p.pos == top or p.pos == bottom:
-    dataPos = w.startPos[0]
-    for i in 0 ..< height:
-      copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
-      dataPos = dataPos + p.width
-      newDataPos = newDataPos + width
-  else:
-    dataPos = w.startPos[1] * width
-    for i in w.startPos[1] ..< w.endPos[1]:
-      copyMem(p.pixelData[dataPos].addr, newImgData.data[newDataPos].addr, width * 4)
-      dataPos = dataPos + width
-      newDataPos = newDataPos + width
+  for i in 0 ..< height:
+    copyMem(
+      p.pixelData[panelRowStart].addr,
+      w.img.data[widgetRowStart].addr, 
+      rowBytes
+    )
+    panelRowStart += panelStride
+    widgetRowStart += width
 
   # Attach and Damage
+  # TODO fix wl_surface_attach
   p.surface.wl_surface_attach(p.buffer, 0, 0)
   p.surface.wl_surface_damage(int32(w.startPos[0]), int32(w.startPos[1]), width, height)
 
@@ -135,6 +125,12 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
     widget = newPowerWidget(item, pos)
   of WidgetType.desktop:
     widget = newDesktopWidget(item, pos)
+  of WidgetType.cpu:
+    widget = newCpuWidget(item, pos)
+  of WidgetType.mem:
+    widget = newMemWidget(item, pos)
+  else:
+    discard
 
   return widget
 

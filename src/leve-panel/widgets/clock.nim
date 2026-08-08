@@ -22,12 +22,15 @@ proc onClock(data: pointer) =
   echo "open clock widget"
   exec(cast[ptr PanelItem](data))
 
-proc newClockImg(): Image =
-  let img = 
-    if p.pos == top or p.pos == bottom:
-      newImage(p.size * 2, p.size)
-    else:
-      newImage(p.size, p.size * 2)
+proc drawClockImg(w: ptr Widget) =
+  let ctx = w.img.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
   let text = getTime()
 
   # Draw Text
@@ -42,16 +45,13 @@ proc newClockImg(): Image =
   # Center text both horizontally and vertically
   let layout = font.typeset(
     text,
-    bounds = vec2(img.width.float, img.height.float),
+    bounds = vec2(w.img.width.float, w.img.height.float),
     hAlign = CenterAlign,  # Horizontal: Left, Center, Right
     vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
   )
 
   # Draw the text within the specified bounds, centered
-  img.fillText(layout, translate(vec2(0, 0)))
-  #clock.fillText(font.typeset(text, vec2(180, 180)), translate(vec2(0, 0)))
-
-  return img
+  w.img.fillText(layout, translate(vec2(0, 0)))
 
 proc newClockWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
@@ -66,8 +66,12 @@ proc newClockWidget(i: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + (2 * p.size)]
 
-  # Create Clock Image
-  let img = newClockImg()
+  # Create Image
+  let img = 
+    if p.pos == top or p.pos == bottom:
+      newImage(p.size * 2, p.size)
+    else:
+      newImage(p.size, p.size * 2)
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onClock(addr i))
@@ -75,6 +79,7 @@ proc newClockWidget(i: PanelItem, pos: float32): Widget =
 
   # Create widget
   let widget: Widget = Widget(widgetType: clock, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  drawClockImg(addr widget)
 
   return widget
 

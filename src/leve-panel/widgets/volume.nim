@@ -82,10 +82,18 @@ proc checkVolStatus() =
     echo "Is pulse-audio running?"
 
 # ----------------------------------------------------------------------------------------
-#                                    Create Image
+#                                    Draw Image
 # ----------------------------------------------------------------------------------------
 
-proc newVolImg(): Image =
+proc drawVolImg(w: ptr Widget) =
+  let ctx = w.img.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
   let iconSize =
     if p.iconSize > 24:
       p.iconSize - 4
@@ -109,9 +117,6 @@ proc newVolImg(): Image =
   if not fileExists(iconPath):
     iconPath = "/usr/share/leve-panel/icons" / iconName
 
-  # Create image
-  let img = newImage(p.size, p.size)
-
   # Load Icon
   echo "Load icon: ", iconPath
   let icon = try:
@@ -122,9 +127,7 @@ proc newVolImg(): Image =
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
-  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
-
-  return img
+  w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
 # ----------------------------------------------------------------------------------------
 #                                    Callbacks
@@ -154,7 +157,7 @@ proc onMute(data: pointer) =
   # Update state and Image
   volState = getVolState()
 
-  cast[ptr Widget](data).img = newVolImg()
+  drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
@@ -194,7 +197,7 @@ proc volUp(data: pointer) =
   if curVolState == volState:
     return
 
-  cast[ptr Widget](data).img = newVolImg()
+  drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
@@ -226,7 +229,7 @@ proc volDown(data: pointer) =
   if curVolState == volState:
     return
 
-  cast[ptr Widget](data).img = newVolImg()
+  drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
@@ -247,8 +250,8 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + int(p.size)]
 
-  # Create volume Image
-  let img = newVolImg()
+  # Create Image
+  let img = newImage(p.size, p.size)
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
@@ -264,5 +267,6 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
 
   # Create widget
   var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  drawVolImg(addr widget)
 
   return widget

@@ -151,6 +151,8 @@ type WidgetType = enum
   menu
   power
   desktop
+  cpu
+  mem
 
 type PanelItem = object
   widget: WidgetType
@@ -193,13 +195,13 @@ type WorkspaceData = object
   name: string
   state: WsFlags
 
-type imgProc = proc (curWS: int): Image
+type imgProc = proc (w: ptr Widget, curWS: int)
 
 template debug(args: varargs[untyped]) =
   when not defined(release) and not defined(danger):
     system.debugEcho(args)
 
-var newDesktopImg: imgProc
+var drawDesktopImg: imgProc
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
 var displayInfo = DisplayInfo(name: "Unknown")
@@ -210,12 +212,13 @@ var tt = Tooltip()
 var m = Menu()
 setCurrentDir(getHomeDir())
 
+proc roundBgCorners(ctx: Context, side: Side, width, height: int32)
 proc updateWidget(w: ptr Widget)
 proc updateTooltip(tooltip: ptr Tooltip)
 proc createPopup(w: Widget, data: pointer)
 
 include "leve-panel"/[config, arg_parse, output, buffer, workspaces, sway]
-include "leve-panel"/"widgets"/[favorites, clock, volume, menu, power, desktop]
+include "leve-panel"/"widgets"/[favorites, clock, volume, menu, power, desktop, cpu, mem]
 include "leve-panel"/[menu, tooltip, popup, callbacks, panel]
 
 # ----------------------------------------------------------------------------------------
@@ -283,7 +286,7 @@ proc getFDs(): array[3, TPollfd] =
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
   spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
-  #spec.it_interval.tv_nsec = 100_000_000 # Repeat every 0.1s
+  #spec.it_interval.tv_nsec = 5_000_000 # Repeat every 0.1s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 
@@ -440,8 +443,22 @@ proc main() =
       if now().second == 0:
         for widget in widgets:
           if widget.widgetType == WidgetType.clock:
-            widget.img = newClockImg()
+            drawClockImg(addr widget)
             updateWidget(addr widget)
+        p.surface.wl_surface_commit()
+
+      # Update Status Widgets
+      if (now().second mod 2 == 0):
+        for widget in widgets:
+          case widget.widgetType
+          of WidgetType.cpu:
+            drawCpuImg(addr widget)
+            updateWidget(addr widget)
+          of WidgetType.mem:
+            drawMemImg(addr widget)
+            updateWidget(addr widget)
+          else:
+            discard
         p.surface.wl_surface_commit()
 
       # Check pipe data
@@ -459,7 +476,7 @@ proc main() =
           volState = getVolState()
           for widget in widgets:
             if widget.widgetType == WidgetType.volume:
-              widget.img = newVolImg()
+              drawVolImg(addr widget)
               updateWidget(addr widget)
           p.surface.wl_surface_commit()
 
@@ -492,7 +509,7 @@ proc main() =
       # Update desktop indicator widget
       for widget in widgets:
         if widget.widgetType == WidgetType.desktop:
-          widget.img = newDesktopImg(curWS)
+          drawDesktopImg(addr widget, curWS)
           updateWidget(addr widget)
       p.surface.wl_surface_commit()
       swayEventsReady = false
