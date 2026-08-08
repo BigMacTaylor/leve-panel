@@ -10,11 +10,6 @@ type CpuTime = object
 
 var cpuTime: CpuTime
 
-proc newFont(typeface: Typeface, size: float32, color: Color): Font =
-  result = newFont(typeface)
-  result.size = size
-  result.paint.color = color
-
 proc getCpuTime(): CpuTime =
   # Reads the first line of /proc/stat
   let lines = readFile("/proc/stat").splitLines()
@@ -71,24 +66,6 @@ proc getCpuText(): string =
 
   return "CPU\n" & "\xA0\xA0" & $num & "%"
 
-proc getCpuTextBak(cmd: string): string =
-  let now = now()
-  let time = now.format("h:mm tt")
-  let date = now.format("MM/d/YYYY")
-
-  let cmd = """vmstat 1 2 | tail -1 | awk '{print $15}' """
-  let (output, status) = execCmdEx(cmd)
-
-  if status != 0:
-    echo "Error: Could not get mute status"
-    return "Error"
-
-  var num = output.strip.parseInt
-  num = num div 10
-
-
-  return $num & "%"
-
 proc onCpuBtn(data: pointer) =
   echo "power off menu "
   exec(cast[ptr PanelItem](data))
@@ -101,13 +78,6 @@ proc drawCpuImg(w: ptr Widget) =
     w.img.fill(p.color)
   else:
     ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
-  let iconSize = if p.iconSize > 24:
-    p.iconSize - 2
-  else:
-    p.iconSize
-
-  let padding = (p.size - p.iconSize) / 2
 
   # Draw Text
   let text = getCpuText()

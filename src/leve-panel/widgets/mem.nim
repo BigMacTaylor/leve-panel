@@ -54,13 +54,6 @@ proc drawMemImg(w: ptr Widget) =
   else:
     ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
 
-  let iconSize = if p.iconSize > 24:
-    p.iconSize - 2
-  else:
-    p.iconSize
-
-  let padding = (p.size - p.iconSize) / 2
-
   # Draw Text
   let text = getMemText()
   let font = try:

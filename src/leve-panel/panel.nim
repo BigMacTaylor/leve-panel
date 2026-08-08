@@ -129,8 +129,6 @@ proc createWidget(item: PanelItem, pos: float32): Widget =
     widget = newCpuWidget(item, pos)
   of WidgetType.mem:
     widget = newMemWidget(item, pos)
-  else:
-    discard
 
   return widget
 
