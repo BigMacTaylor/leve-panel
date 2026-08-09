@@ -157,6 +157,7 @@ proc onMute(data: pointer) =
   # Update state and Image
   volState = getVolState()
 
+  p.surface.wl_surface_attach(p.buffer, 0, 0)
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
@@ -197,6 +198,7 @@ proc volUp(data: pointer) =
   if curVolState == volState:
     return
 
+  p.surface.wl_surface_attach(p.buffer, 0, 0)
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
@@ -229,6 +231,7 @@ proc volDown(data: pointer) =
   if curVolState == volState:
     return
 
+  p.surface.wl_surface_attach(p.buffer, 0, 0)
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()

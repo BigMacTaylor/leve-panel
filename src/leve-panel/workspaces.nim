@@ -91,6 +91,7 @@ proc onWsEventDone(data: pointer, manager: ptr ext_workspace_manager_v1) {.cdecl
   echo "[WS-Manager] Event finished by compositor. \n"
 
   # Update desktop widget
+  p.surface.wl_surface_attach(p.buffer, 0, 0)
   for widget in widgets:
     if widget.widgetType == WidgetType.desktop:
       drawDesktopImg(addr widget, getCurrentWS())
