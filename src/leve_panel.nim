@@ -404,7 +404,11 @@ proc main() =
   let fds = getFDs()
   var curWS = 0
   var timeOut: cint = -1
-  var swayEventsReady = false
+
+  var updateClock = false
+  var updateStats = false
+  var updateVol = false
+  var updateDesktop = false
 
   echo "\nLeve-Panel: Clock Running... \n"
 
@@ -432,36 +436,18 @@ proc main() =
     else:
       cancel_read(s.display)
 
-    # Handle timer
+    # Handle Timer Events
     if (fds[1].revents and POLLIN) != 0:
       var expirations: uint64
       discard read(fds[1].fd, addr expirations, sizeof(expirations))
 
       debug "\nTick: ", now().format("HH:mm:ss")
 
-      # Update Clock widget
-      if now().second == 0:
-        for widget in widgets:
-          if widget.widgetType == WidgetType.clock:
-            drawClockImg(addr widget)
-            updateWidget(addr widget)
-        p.surface.wl_surface_commit()
+      let second = now().second
+      updateClock = (second == 0)
+      updateStats = (second mod 2 == 0)
 
-      # Update Status Widgets
-      if (now().second mod 2 == 0):
-        for widget in widgets:
-          case widget.widgetType
-          of WidgetType.cpu:
-            drawCpuImg(addr widget)
-            updateWidget(addr widget)
-          of WidgetType.mem:
-            drawMemImg(addr widget)
-            updateWidget(addr widget)
-          else:
-            discard
-        p.surface.wl_surface_commit()
-
-      # Check pipe data
+      # Check volume pipe for data
       if volProcess.hasDataStdout():
         debug "Update volume state"
         volMute = getMute()
@@ -470,15 +456,11 @@ proc main() =
         # Read all content to "clear" it from buffer
         discard volProcess.readStdout()
 
-        # Check widget state
-        if volState != getVolState():
-          # Update Volume widget
-          volState = getVolState()
-          for widget in widgets:
-            if widget.widgetType == WidgetType.volume:
-              drawVolImg(addr widget)
-              updateWidget(addr widget)
-          p.surface.wl_surface_commit()
+        # Check volume state
+        let newVolState = getVolState()
+        if volState != newVolState:
+          volState = newVolState
+          updateVol = true
 
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
@@ -487,9 +469,9 @@ proc main() =
 
       # Verify magic string
       if headerBytes[0..5] != "i3-ipc":
-        echo("Error: Invalid IPC magic string received.")
+        echo "Error: Invalid IPC magic string received."
       else:
-        # Get payload length from bytes 6 to 9 (Little Endian)
+        # Get payload length from bytes 6 to 9
         var replyLen: uint32
         copyMem(addr replyLen, addr headerBytes[6], 4)
 
@@ -500,20 +482,47 @@ proc main() =
         # Read JSON Payload
         let json = readExact(fds[2].fd, int(replyLen))
         curWS = getWsFromJson(json)
-        swayEventsReady = true
+        updateDesktop = true
         timeOut = 5
-        continue
+        continue # Yield back to the poll loop
 
-    # Check if Sway Events are ready
-    if swayEventsReady:
-      # Update desktop indicator widget
+
+    # Update Widgets
+    if updateClock or updateStats or updateVol or updateDesktop:
+      p.surface.wl_surface_attach(p.buffer, 0, 0)
       for widget in widgets:
-        if widget.widgetType == WidgetType.desktop:
-          drawDesktopImg(addr widget, curWS)
-          updateWidget(addr widget)
+        case widget.widgetType
+        of WidgetType.clock:
+          if updateClock:
+            drawClockImg(addr widget)
+            updateWidget(addr widget)
+        of WidgetType.cpu:
+          if updateStats:
+            drawCpuImg(addr widget)
+            updateWidget(addr widget)
+        of WidgetType.mem:
+          if updateStats:
+            drawMemImg(addr widget)
+            updateWidget(addr widget)
+        of WidgetType.volume:
+          if updateVol:
+            drawVolImg(addr widget)
+            updateWidget(addr widget)
+        of WidgetType.desktop:
+          if updateDesktop:
+            drawDesktopImg(addr widget, curWS)
+            updateWidget(addr widget)
+            timeOut = -1
+        else:
+          discard
+
+      updateClock = false
+      updateStats = false
+      updateVol = false
+      updateDesktop = false
+
+      # Commit Wayland Surface
       p.surface.wl_surface_commit()
-      swayEventsReady = false
-      timeOut = -1
 
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)

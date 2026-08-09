@@ -100,9 +100,7 @@ proc updateWidget(w: ptr Widget) =
     panelRowStart += panelStride
     widgetRowStart += width
 
-  # Attach and Damage
-  # TODO fix wl_surface_attach
-  p.surface.wl_surface_attach(p.buffer, 0, 0)
+  # Damage Surface
   p.surface.wl_surface_damage(int32(w.startPos[0]), int32(w.startPos[1]), width, height)
 
 # ----------------------------------------------------------------------------------------
