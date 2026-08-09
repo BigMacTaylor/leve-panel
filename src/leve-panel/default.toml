@@ -66,6 +66,16 @@ exec = "gsimplecal"
 terminal = false
 
 [[Right]]
+widget = "mem"
+exec = "btop"
+terminal = true
+
+[[Right]]
+widget = "cpu"
+exec = "btop"
+terminal = true
+
+[[Right]]
 widget = "volume"
 exec = "pavucontrol"
 terminal = false

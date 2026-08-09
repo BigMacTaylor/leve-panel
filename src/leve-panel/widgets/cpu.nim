@@ -58,7 +58,7 @@ proc getCpuText(): string =
     cpuTime = t2
 
     usage = calculateCpuPercent(t1, t2)
-    echo "Current CPU Usage: ", usage.formatFloat(ffDecimal, 2), "%"
+    debug "CPU Usage: ", usage.formatFloat(ffDecimal, 2), "%"
   except Exception as e:
     echo "Error: ", e.msg
 

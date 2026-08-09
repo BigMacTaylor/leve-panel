@@ -33,7 +33,7 @@ proc getMemText(): string =
   var mem: MemStats
   try:
     mem = getMemoryStats()
-    echo "RAM Usage:    ", mem.usedPercent.formatFloat(ffDecimal, 2), "%"
+    debug "RAM Usage: ", mem.usedPercent.formatFloat(ffDecimal, 2), "%"
   except Exception as e:
     echo "Error: ", e.msg
 
