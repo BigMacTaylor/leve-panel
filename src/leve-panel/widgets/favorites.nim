@@ -88,11 +88,16 @@ proc onFavClick(data: pointer) =
   echo "on click"
   exec(cast[ptr PanelItem](data))
 
-proc newFavImg(fav: PanelItem): Image =
-  let padding = (p.size - p.iconSize) / 2
+proc drawFavImg(w: ptr Widget, fav: PanelItem) =
+  let ctx = w.img.newContext()
 
-  # Create Favorite Image
-  let img = newImage(p.size, p.size)
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
+  let padding = (p.size - p.iconSize) / 2
 
   # Load Icon
   var icon: Image
@@ -112,7 +117,7 @@ proc newFavImg(fav: PanelItem): Image =
       echo "Error: Icon not found"
       notFoundIcon()
 
-    img.draw(
+    w.img.draw(
       icon,
       translate(vec2(100, 100)) * scale(vec2(0.2, 0.2)) * translate(vec2(-450, -450)),
     )
@@ -125,11 +130,9 @@ proc newFavImg(fav: PanelItem): Image =
 
   # Resize Icon
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
-  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+  w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-  return img
-
-proc newFavWidget(fav: PanelItem, pos: float32): Widget =
+proc newFavWidget(fav: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -142,14 +145,23 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + int(p.size)]
 
-  # Create Favorite Image
-  let img = newFavImg(fav)
+  # Create Image
+  let img = newImage(p.size, p.size)
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onFavClick(addr fav))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(widgetType: favorite, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  let widget: Widget = Widget(
+    widgetType: favorite,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
+  drawFavImg(addr widget, fav)
 
   return widget

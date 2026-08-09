@@ -107,26 +107,26 @@ proc updateWidget(w: ptr Widget) =
 #                                    Create Widgets
 # ----------------------------------------------------------------------------------------
 
-proc createWidget(item: PanelItem, pos: float32): Widget =
+proc createWidget(item: PanelItem, pos: float32, rdSide: Side): Widget =
   var widget: Widget
 
   case item.widget
   of WidgetType.favorite:
-    widget = newFavWidget(item, pos)
+    widget = newFavWidget(item, pos, rdSide)
   of WidgetType.clock:
-    widget = newClockWidget(item, pos)
+    widget = newClockWidget(item, pos, rdSide)
   of WidgetType.volume:
-    widget = newVolWidget(item, pos)
+    widget = newVolWidget(item, pos, rdSide)
   of WidgetType.menu:
-    widget = newMenuWidget(item, pos)
+    widget = newMenuWidget(item, pos, rdSide)
   of WidgetType.power:
-    widget = newPowerWidget(item, pos)
+    widget = newPowerWidget(item, pos, rdSide)
   of WidgetType.desktop:
-    widget = newDesktopWidget(item, pos)
+    widget = newDesktopWidget(item, pos, rdSide)
   of WidgetType.cpu:
-    widget = newCpuWidget(item, pos)
+    widget = newCpuWidget(item, pos, rdSide)
   of WidgetType.mem:
-    widget = newMemWidget(item, pos)
+    widget = newMemWidget(item, pos, rdSide)
 
   return widget
 
@@ -168,17 +168,19 @@ proc drawPanelImg(panel: ptr Panel): Image =
   # Add Left Widgets
   var endWidget = true
   var pos: float32 = 0
+  var rdSide = none
   debug "get left items"
   let leftItems = panel.getItems("Left")
   for item in leftItems:
-    var widget: Widget = createWidget(item, pos)
-
     if endWidget:
       if panel.pos == top or panel.pos == bottom:
-        widget.roundedSide = left
+        rdSide = left
       else:
-        widget.roundedSide = top
+        rdSide = top
+    else: rdSide = none
     endWidget = false
+
+    var widget: Widget = createWidget(item, pos, rdSide)
 
     widgets.add(widget)
 
@@ -213,7 +215,9 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Add Center Widgets
   for item in centerItems:
-    var widget: Widget = createWidget(item, pos)
+    rdSide = none
+
+    var widget: Widget = createWidget(item, pos, rdSide)
 
     widgets.add(widget)
 
@@ -245,14 +249,15 @@ proc drawPanelImg(panel: ptr Panel): Image =
     elif (item.widget == WidgetType.desktop) and (item.style != num):
       pos = pos - float32(3 * p.size)
 
-    var widget: Widget = createWidget(item, pos)
-
     if endWidget:
       if panel.pos == top or panel.pos == bottom:
-        widget.roundedSide = right
+        rdSide = right
       else:
-        widget.roundedSide = bottom
+        rdSide = bottom
+    else: rdSide = none
     endWidget = false
+
+    var widget: Widget = createWidget(item, pos, rdSide)
 
     widgets.add(widget)
 

@@ -240,7 +240,7 @@ proc volDown(data: pointer) =
 #                                    Create Widget
 # ----------------------------------------------------------------------------------------
 
-proc newVolWidget(i: PanelItem, pos: float32): Widget =
+proc newVolWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -269,7 +269,15 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
     callBacks.add(scrollDown)
 
   # Create widget
-  var widget: Widget = Widget(widgetType: volume, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  var widget: Widget = Widget(
+    widgetType: volume,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
   drawVolImg(addr widget)
 
   return widget

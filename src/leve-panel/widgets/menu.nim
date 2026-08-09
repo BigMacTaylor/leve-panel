@@ -6,22 +6,27 @@
 # ========================================================================================
 
 proc onMenuBtn(data: pointer) =
-  echo "open menu"
+  debug "open menu"
   exec(cast[ptr PanelItem](data))
 
-proc newMenuImg(): Image =
+proc drawMenuImg(w: ptr Widget) =
+  let ctx = w.img.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
   let iconSize = if p.iconSize > 24:
-    p.iconSize - 2
+    p.iconSize - 4
   else:
     p.iconSize
-  let padding = (p.size - iconSize) / 2
 
+  let padding = (p.size - iconSize) / 2
   var iconPath = getConfigDir() / "icons" / "menu.png"
   if not fileExists(iconPath):
     iconPath = "/usr/share/leve-panel/icons/menu.png"
-
-  # Create image
-  let img = newImage(p.size, p.size)
 
   # Load Icon
   echo "Load icon: ", iconPath
@@ -36,11 +41,9 @@ proc newMenuImg(): Image =
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
-  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+  w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-  return img
-
-proc newMenuWidget(i: PanelItem, pos: float32): Widget =
+proc newMenuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -53,14 +56,23 @@ proc newMenuWidget(i: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + int(p.size)]
 
-  # Create Menu Image
-  let img = newMenuImg()
+  # Create Image
+  let img = newImage(p.size, p.size)
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onMenuBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(widgetType: menu, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  var widget: Widget = Widget(
+    widgetType: menu,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
+  drawMenuImg(addr widget)
 
   return widget

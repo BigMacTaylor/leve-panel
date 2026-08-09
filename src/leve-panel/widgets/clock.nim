@@ -53,7 +53,7 @@ proc drawClockImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newClockWidget(i: PanelItem, pos: float32): Widget =
+proc newClockWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -78,7 +78,15 @@ proc newClockWidget(i: PanelItem, pos: float32): Widget =
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  let widget: Widget = Widget(widgetType: clock, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  let widget: Widget = Widget(
+    widgetType: clock,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
   drawClockImg(addr widget)
 
   return widget

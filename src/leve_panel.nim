@@ -286,7 +286,7 @@ proc getFDs(): array[3, TPollfd] =
   let time_fd = timerfd_create(CLOCK_MONOTONIC, 0)
   var spec: Itimerspec
   spec.it_interval.tv_sec = posix.Time(1) # Repeat every 1s
-  #spec.it_interval.tv_nsec = 5_000_000 # Repeat every 0.1s
+  #spec.it_interval.tv_nsec = 2_000_000 # Repeat every 0.1s
   spec.it_value.tv_sec = posix.Time(1) # Start in 1s
   discard timerfd_settime(time_fd, 0, addr spec, nil)
 

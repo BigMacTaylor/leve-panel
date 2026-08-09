@@ -168,7 +168,7 @@ proc desktopNumImg(w: ptr Widget, curWS: int) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
+proc newDesktopWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -210,7 +210,14 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
   # Create callbacks
 
   # Create widget
-  var widget: Widget = Widget(widgetType: desktop, startPos: startPos, endPos: endPos, img: img)
+  var widget: Widget = Widget(
+    widgetType: desktop,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+  )
+
   drawDesktopImg(addr widget, getCurrentWS())
 
   return widget

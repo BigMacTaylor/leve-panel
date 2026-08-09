@@ -6,22 +6,27 @@
 # ========================================================================================
 
 proc onPowerBtn(data: pointer) =
-  echo "power off menu "
+  debug "power off menu "
   exec(cast[ptr PanelItem](data))
 
-proc newPowerImg(): Image =
+proc drawPowerImg(w: ptr Widget) =
+  let ctx = w.img.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
   let iconSize = if p.iconSize > 24:
     p.iconSize - 6
   else:
     p.iconSize
-  let padding = (p.size - iconSize) / 2
 
+  let padding = (p.size - iconSize) / 2
   var iconPath = getConfigDir() / "icons" / "power.png"
   if not fileExists(iconPath):
     iconPath = "/usr/share/leve-panel/icons/power.png"
-
-  # Create image
-  let img = newImage(p.size, p.size)
 
   # Load Icon
   echo "Load icon: ", iconPath
@@ -33,11 +38,9 @@ proc newPowerImg(): Image =
 
   # Resize Icon
   let sizedIcon = icon.resize(iconSize, iconSize)
-  img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
+  w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-  return img
-
-proc newPowerWidget(i: PanelItem, pos: float32): Widget =
+proc newPowerWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -50,14 +53,23 @@ proc newPowerWidget(i: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + int(p.size)]
 
-  # Create Power Image
-  let img = newPowerImg()
+  # Create Image
+  let img = newImage(p.size, p.size)
 
   # Create callbacks
   let click: CallBack = (Event.click_l, proc(data: pointer) = onPowerBtn(addr i))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(widgetType: power, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  var widget: Widget = Widget(
+    widgetType: power,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
+  drawPowerImg(addr widget)
 
   return widget

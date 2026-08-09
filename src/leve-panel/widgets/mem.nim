@@ -75,7 +75,7 @@ proc drawMemImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newMemWidget(i: PanelItem, pos: float32): Widget =
+proc newMemWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -96,7 +96,15 @@ proc newMemWidget(i: PanelItem, pos: float32): Widget =
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(widgetType: mem, startPos: startPos, endPos: endPos, img: img, callBacks: callBacks)
+  var widget: Widget = Widget(
+    widgetType: mem,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
   drawMemImg(addr widget)
 
   return widget

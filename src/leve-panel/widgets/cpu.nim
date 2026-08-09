@@ -100,7 +100,7 @@ proc drawCpuImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newCpuWidget(i: PanelItem, pos: float32): Widget =
+proc newCpuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -121,7 +121,15 @@ proc newCpuWidget(i: PanelItem, pos: float32): Widget =
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
-  var widget: Widget = Widget(widgetType: cpu, startPos: startPos, endPos: endPos, roundedSide: Side.none, img: img, callBacks: callBacks)
+  var widget: Widget = Widget(
+    widgetType: cpu,
+    startPos: startPos,
+    endPos: endPos,
+    roundedSide: rdSide,
+    img: img,
+    callBacks: callBacks,
+  )
+
   drawCpuImg(addr widget)
 
   return widget
