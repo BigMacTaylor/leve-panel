@@ -89,14 +89,6 @@ proc onFavClick(data: pointer) =
   exec(cast[ptr PanelItem](data))
 
 proc drawFavImg(w: ptr Widget, fav: PanelItem) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let padding = (p.size - p.iconSize) / 2
 
   # Load Icon
@@ -132,7 +124,7 @@ proc drawFavImg(w: ptr Widget, fav: PanelItem) =
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newFavWidget(fav: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newFavWidget(fav: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -157,7 +149,6 @@ proc newFavWidget(fav: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: favorite,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
     callBacks: callBacks,
   )

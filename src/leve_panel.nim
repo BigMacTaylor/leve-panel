@@ -212,7 +212,7 @@ var tt = Tooltip()
 var m = Menu()
 setCurrentDir(getHomeDir())
 
-proc roundBgCorners(ctx: Context, side: Side, width, height: int32)
+proc clearBgImg(w: ptr Widget)
 proc updateWidget(w: ptr Widget)
 proc updateTooltip(tooltip: ptr Tooltip)
 proc createPopup(w: Widget, data: pointer)
@@ -494,22 +494,27 @@ proc main() =
         case widget.widgetType
         of WidgetType.clock:
           if updateClock:
+            clearBgImg(addr widget)
             drawClockImg(addr widget)
             updateWidget(addr widget)
         of WidgetType.cpu:
           if updateStats:
+            clearBgImg(addr widget)
             drawCpuImg(addr widget)
             updateWidget(addr widget)
         of WidgetType.mem:
           if updateStats:
+            clearBgImg(addr widget)
             drawMemImg(addr widget)
             updateWidget(addr widget)
         of WidgetType.volume:
           if updateVol:
+            clearBgImg(addr widget)
             drawVolImg(addr widget)
             updateWidget(addr widget)
         of WidgetType.desktop:
           if updateDesktop:
+            clearBgImg(addr widget)
             drawDesktopImg(addr widget, curWS)
             updateWidget(addr widget)
             timeOut = -1

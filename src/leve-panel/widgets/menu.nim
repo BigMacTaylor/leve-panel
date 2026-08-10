@@ -10,14 +10,6 @@ proc onMenuBtn(data: pointer) =
   exec(cast[ptr PanelItem](data))
 
 proc drawMenuImg(w: ptr Widget) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let iconSize = if p.iconSize > 24:
     p.iconSize - 4
   else:
@@ -43,7 +35,7 @@ proc drawMenuImg(w: ptr Widget) =
   let sizedIcon = icon.resize(iconSize, iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newMenuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newMenuWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -68,7 +60,6 @@ proc newMenuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: menu,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
     callBacks: callBacks,
   )

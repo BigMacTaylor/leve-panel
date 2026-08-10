@@ -86,14 +86,6 @@ proc checkVolStatus() =
 # ----------------------------------------------------------------------------------------
 
 proc drawVolImg(w: ptr Widget) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let iconSize =
     if p.iconSize > 24:
       p.iconSize - 4
@@ -134,11 +126,11 @@ proc drawVolImg(w: ptr Widget) =
 # ----------------------------------------------------------------------------------------
 
 proc onVolClick(data: pointer) =
-  echo "open volume control"
+  debug "open volume control"
   exec(cast[ptr PanelItem](data))
 
 proc onMute(data: pointer) =
-  echo "on mute"
+  debug "on mute"
   let cmd = "pactl set-sink-mute @DEFAULT_SINK@ "
 
   if volMute:
@@ -158,12 +150,13 @@ proc onMute(data: pointer) =
   volState = getVolState()
 
   p.surface.wl_surface_attach(p.buffer, 0, 0)
+  clearBgImg(cast[ptr Widget](data))
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
 proc volUp(data: pointer) =
-  echo "volume up"
+  debug "volume up"
   let curVolState = volState
 
   # Check bounds
@@ -186,7 +179,7 @@ proc volUp(data: pointer) =
     volMute = false
     let muteCmd = "pactl set-sink-mute @DEFAULT_SINK@ "
     discard execShellCmd(muteCmd & "0")
-  echo "mute state ", volMute
+  debug "mute state ", volMute
 
   # Update tooltip
   tt.text = "Volume: " & $cur_vol & "%"
@@ -199,12 +192,13 @@ proc volUp(data: pointer) =
     return
 
   p.surface.wl_surface_attach(p.buffer, 0, 0)
+  clearBgImg(cast[ptr Widget](data))
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
 
 proc volDown(data: pointer) =
-  echo "volume down"
+  debug "volume down"
   let curVolState = volState
 
   # Check bounds
@@ -232,6 +226,7 @@ proc volDown(data: pointer) =
     return
 
   p.surface.wl_surface_attach(p.buffer, 0, 0)
+  clearBgImg(cast[ptr Widget](data))
   drawVolImg(cast[ptr Widget](data))
   updateWidget(cast[ptr Widget](data))
   p.surface.wl_surface_commit()
@@ -240,7 +235,7 @@ proc volDown(data: pointer) =
 #                                    Create Widget
 # ----------------------------------------------------------------------------------------
 
-proc newVolWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newVolWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -273,7 +268,6 @@ proc newVolWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: volume,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
     callBacks: callBacks,
   )

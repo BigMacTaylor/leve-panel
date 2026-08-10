@@ -71,14 +71,6 @@ proc onCpuBtn(data: pointer) =
   exec(cast[ptr PanelItem](data))
 
 proc drawCpuImg(w: ptr Widget) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   # Draw Text
   let text = getCpuText()
   let font = try:
@@ -100,7 +92,7 @@ proc drawCpuImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newCpuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newCpuWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -125,7 +117,6 @@ proc newCpuWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: cpu,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
     callBacks: callBacks,
   )

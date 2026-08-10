@@ -6,18 +6,11 @@
 # ========================================================================================
 
 proc hDesktopDotsImg(w: ptr Widget, curWS: int) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let centerX: float32 = float32(p.size * 2)
   let numCircles: int = getNumWorkspaces()
   let radius: int = p.size div 10
   let color = rgba(255, 255, 255, 255)
+  let ctx = w.img.newContext()
   ctx.fillStyle = color
 
   # Row configuration
@@ -35,18 +28,11 @@ proc hDesktopDotsImg(w: ptr Widget, curWS: int) =
       ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
 
 proc vDesktopDotsImg(w: ptr Widget, curWS: int) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let centerX: float32 = float32(p.size * 2)
   let numCircles: int = getNumWorkspaces()
   let radius: int = p.size div 10
   let color = rgba(255, 255, 255, 255)
+  let ctx = w.img.newContext()
   ctx.fillStyle = color
 
   # Row configuration
@@ -64,14 +50,6 @@ proc vDesktopDotsImg(w: ptr Widget, curWS: int) =
       ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
 
 proc hDesktopNumbersImg(w: ptr Widget, curWS: int) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   var text = ""
 
   for workspace in workspaces:
@@ -101,14 +79,6 @@ proc hDesktopNumbersImg(w: ptr Widget, curWS: int) =
   w.img.fillText(layout, translate(vec2(0, 0)))
 
 proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   var text = ""
 
   for workspace in workspaces:
@@ -138,14 +108,6 @@ proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
   w.img.fillText(layout, translate(vec2(0, 0)))
 
 proc desktopNumImg(w: ptr Widget, curWS: int) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let text = $curWS
 
   # Draw Text
@@ -168,7 +130,7 @@ proc desktopNumImg(w: ptr Widget, curWS: int) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newDesktopWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -214,7 +176,6 @@ proc newDesktopWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: desktop,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
   )
 

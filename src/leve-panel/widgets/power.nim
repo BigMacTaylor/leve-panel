@@ -10,14 +10,6 @@ proc onPowerBtn(data: pointer) =
   exec(cast[ptr PanelItem](data))
 
 proc drawPowerImg(w: ptr Widget) =
-  let ctx = w.img.newContext()
-
-  # Draw widget background
-  if w.roundedSide == none:
-    w.img.fill(p.color)
-  else:
-    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
-
   let iconSize = if p.iconSize > 24:
     p.iconSize - 6
   else:
@@ -40,7 +32,7 @@ proc drawPowerImg(w: ptr Widget) =
   let sizedIcon = icon.resize(iconSize, iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newPowerWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
+proc newPowerWidget(i: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -65,7 +57,6 @@ proc newPowerWidget(i: PanelItem, pos: float32, rdSide: Side): Widget =
     widgetType: power,
     startPos: startPos,
     endPos: endPos,
-    roundedSide: rdSide,
     img: img,
     callBacks: callBacks,
   )

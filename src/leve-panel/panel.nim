@@ -77,6 +77,16 @@ proc roundBgCorners(ctx: Context, side: Side, width, height: int32) =
   ctx.fillStyle = p.color
   ctx.fill()
 
+proc clearBgImg(w: ptr Widget) =
+  let ctx = w.img.newContext()
+
+  # Draw widget background
+  if w.roundedSide == none:
+    w.img.fill(p.color)
+  else:
+    w.img.fill(rgba(0, 0, 0, 0))
+    ctx.roundBgCorners(w.roundedSide, w.img.width.int32, w.img.height.int32)
+
 # ----------------------------------------------------------------------------------------
 #                                    Update Widgets
 # ----------------------------------------------------------------------------------------
@@ -107,26 +117,26 @@ proc updateWidget(w: ptr Widget) =
 #                                    Create Widgets
 # ----------------------------------------------------------------------------------------
 
-proc createWidget(item: PanelItem, pos: float32, rdSide: Side): Widget =
+proc createWidget(item: PanelItem, pos: float32): Widget =
   var widget: Widget
 
   case item.widget
   of WidgetType.favorite:
-    widget = newFavWidget(item, pos, rdSide)
+    widget = newFavWidget(item, pos)
   of WidgetType.clock:
-    widget = newClockWidget(item, pos, rdSide)
+    widget = newClockWidget(item, pos)
   of WidgetType.volume:
-    widget = newVolWidget(item, pos, rdSide)
+    widget = newVolWidget(item, pos)
   of WidgetType.menu:
-    widget = newMenuWidget(item, pos, rdSide)
+    widget = newMenuWidget(item, pos)
   of WidgetType.power:
-    widget = newPowerWidget(item, pos, rdSide)
+    widget = newPowerWidget(item, pos)
   of WidgetType.desktop:
-    widget = newDesktopWidget(item, pos, rdSide)
+    widget = newDesktopWidget(item, pos)
   of WidgetType.cpu:
-    widget = newCpuWidget(item, pos, rdSide)
+    widget = newCpuWidget(item, pos)
   of WidgetType.mem:
-    widget = newMemWidget(item, pos, rdSide)
+    widget = newMemWidget(item, pos)
 
   return widget
 
@@ -168,19 +178,17 @@ proc drawPanelImg(panel: ptr Panel): Image =
   # Add Left Widgets
   var endWidget = true
   var pos: float32 = 0
-  var rdSide = none
   debug "get left items"
   let leftItems = panel.getItems("Left")
   for item in leftItems:
+    var widget: Widget = createWidget(item, pos)
+
     if endWidget:
       if panel.pos == top or panel.pos == bottom:
-        rdSide = left
+        widget.roundedSide = left
       else:
-        rdSide = top
-    else: rdSide = none
+        widget.roundedSide = top
     endWidget = false
-
-    var widget: Widget = createWidget(item, pos, rdSide)
 
     widgets.add(widget)
 
@@ -215,9 +223,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
   # Add Center Widgets
   for item in centerItems:
-    rdSide = none
-
-    var widget: Widget = createWidget(item, pos, rdSide)
+    var widget: Widget = createWidget(item, pos)
 
     widgets.add(widget)
 
@@ -249,15 +255,14 @@ proc drawPanelImg(panel: ptr Panel): Image =
     elif (item.widget == WidgetType.desktop) and (item.style != num):
       pos = pos - float32(3 * p.size)
 
+    var widget: Widget = createWidget(item, pos)
+
     if endWidget:
       if panel.pos == top or panel.pos == bottom:
-        rdSide = right
+        widget.roundedSide = right
       else:
-        rdSide = bottom
-    else: rdSide = none
+        widget.roundedSide = bottom
     endWidget = false
-
-    var widget: Widget = createWidget(item, pos, rdSide)
 
     widgets.add(widget)
 
