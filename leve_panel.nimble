@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.0.8"
+version       = "1.1.0"
 author        = "Mac Taylor"
 description   = "Lightweight panel for Sway / Wayland."
 license       = "GPL-3.0-only"
