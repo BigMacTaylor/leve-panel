@@ -1,6 +1,7 @@
 # Leve Panel
 
-A very simple and lightweight panel for Wayland. It uses pure Wayland, without any heavy dependencies like Qt or GTK. It only needs `wlr-layer-shell` installed. So should work on any compositor that supports the `wlr-layer-shell-unstable-v1` protocol.
+A very simple, and ultra lightweight panel for Wayland. It uses pure Wayland, without any heavy dependencies like Qt or GTK.
+So should work on any compositor that supports the `wlr-layer-shell-unstable-v1` protocol. So far its been tested on Sway, Labwc, and Niri.
 
 ![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel.png "Leve Panel")
 
@@ -30,8 +31,8 @@ sudo dnf install ./leve-panel*.rpm
 
 ## Running
 
-To manually start leve-panel just enter the `leve-panel` command.
-Or automatically start it, by adding it to your sway/startup config like this:
+To start leve-panel manually, just enter the `leve-panel` command.
+Or, to start it automatically, add it to your sway/startup config like:
 
 ```text
 exec_always {
@@ -42,13 +43,16 @@ exec_always {
 
 ## Customization
 
-![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_1.png "Leve Panel")
+The config file is located in `~/.config/leve-panel/` and is in TOML format.
 
-![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_3.png "Leve Panel")
+You can run multiple instances of leve-panel by specifying the config file.
 
-![leve_panel](https://github.com/BigMacTaylor/leve-panel/blob/main/screenshots/leve_panel_2.png "Leve Panel")
+```text
+leve-panel -c top_panel.toml
+leve-panel -c bottom_panel.toml
+```
 
-Config file is located in `~/.config/leve-panel/` and is in TOML format. Leve-panel must be restarted for changes to take effect.
+Leve-panel must be restarted before changes to the config take effect.
 
 Favorite icons should be placed in `~/.config/leve-panel/icons/` .
 
