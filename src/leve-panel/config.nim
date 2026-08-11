@@ -31,7 +31,7 @@ proc getIconPath(s: string): string =
     echo "Config Error: Invalid icon path"
     return ""
 
-proc getFont(): string =
+proc getFontPath(): string =
   var dir = getConfigDir() / "font"
   for kind, path in walkDir(dir):
     if kind == pcFile:
@@ -61,7 +61,8 @@ proc getFont(): string =
   else:
     quit("Error: Could not find valid font \n")
 
-var fontPath = getFont()
+var font = try: readFont(getFontPath())
+  except: quit("Error: Could not find valid font \n")
 
 proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
   let config =

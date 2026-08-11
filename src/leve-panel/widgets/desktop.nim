@@ -59,11 +59,6 @@ proc hDesktopNumbersImg(w: ptr Widget, curWS: int) =
       text = text & "\xA0" & $workspace.num & "\xA0"
 
   # Draw Text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 
@@ -88,11 +83,6 @@ proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
       text = text & "\xA0" & $workspace.num & "\xA0" & "\n"
 
   # Draw Text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 
@@ -109,13 +99,6 @@ proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
 
 proc desktopNumImg(w: ptr Widget, curWS: int) =
   let text = $curWS
-
-  # Draw Text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 

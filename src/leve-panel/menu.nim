@@ -20,12 +20,6 @@ proc newMenuImg(menu: ptr Menu): Image =
   let body = "items"
 
   let text = title & "\n" & body
-
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 

@@ -12,11 +12,12 @@ var cpuTime: CpuTime
 
 proc getCpuTime(): CpuTime =
   # Reads the first line of /proc/stat
-  let lines = readFile("/proc/stat").splitLines()
-  if lines.len == 0: return
-  
+  let file = open("/proc/stat")
+  defer: file.close()
+  let firstLine = file.readLine()
+
   # The first line starts with "cpu " followed by the metrics
-  let fields = lines[0].splitWhitespace()
+  let fields = firstLine.splitWhitespace()
   if fields.len < 9 or fields[0] != "cpu":
     raise newException(ValueError, "Failed to parse /proc/stat")
 
@@ -67,17 +68,11 @@ proc getCpuText(): string =
   return "CPU\n" & "\xA0\xA0" & $num & "%"
 
 proc onCpuBtn(data: pointer) =
-  echo "power off menu "
+  debug "open btop"
   exec(cast[ptr PanelItem](data))
 
 proc drawCpuImg(w: ptr Widget) =
-  # Draw Text
   let text = getCpuText()
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 

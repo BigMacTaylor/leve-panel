@@ -19,18 +19,11 @@ proc getTime(): string =
   return time & "\n" & date
 
 proc onClock(data: pointer) =
-  echo "open clock widget"
+  debug "open clock widget"
   exec(cast[ptr PanelItem](data))
 
 proc drawClockImg(w: ptr Widget) =
   let text = getTime()
-
-  # Draw Text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 

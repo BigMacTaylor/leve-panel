@@ -17,11 +17,6 @@ proc newTooltipImg(tooltip: ptr Tooltip): Image =
 
   # Draw text
   let text = tooltip.text
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 

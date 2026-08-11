@@ -12,7 +12,7 @@ type
     usedPercent: float
 
 proc getMemoryStats(): MemStats =
-  ## Parses /proc/meminfo to extract total and available RAM
+  # Parse /proc/meminfo to extract total and available RAM
   let lines = readFile("/proc/meminfo").splitLines()
   
   for line in lines:
@@ -42,17 +42,11 @@ proc getMemText(): string =
   return "Mem\n" & "\xA0\xA0" & $num & "%"
 
 proc onMemBtn(data: pointer) =
-  echo "power off menu "
+  debug "open btop "
   exec(cast[ptr PanelItem](data))
 
 proc drawMemImg(w: ptr Widget) =
-  # Draw Text
   let text = getMemText()
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 

@@ -7,13 +7,7 @@
 
 proc notFoundIcon(): Image =
   let icon = newImage(p.size, p.size)
-  # Draw Text
   let text = "Icon not found"
-  let font = try:
-    readFont(fontPath)
-  except:
-    fontPath = getFont()
-    readFont(fontPath)
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 
@@ -25,6 +19,7 @@ proc notFoundIcon(): Image =
     vAlign = MiddleAlign   # Vertical: Top, Middle, Bottom
   )
   icon.fillText(layout, translate(vec2(0, 0)))
+
   return icon
 
 proc trimWhiteSpace(i: Image): Image =
@@ -85,7 +80,7 @@ proc exec(data: ptr PanelItem) =
   discard execShellCmd(cmd & " &")
 
 proc onFavClick(data: pointer) =
-  echo "on click"
+  debug "fav click"
   exec(cast[ptr PanelItem](data))
 
 proc drawFavImg(w: ptr Widget, fav: PanelItem) =
