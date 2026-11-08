@@ -13,7 +13,13 @@ proc getCurrentWS(): int =
       return workspace.num
 
 proc getNumWorkspaces(): int =
-  return workspaces.len
+  var numWs = 0
+
+  for workspace in workspaces:
+    if hidden notin workspace.state:
+      numWs.inc
+
+  return numWs
 
 # Handle Workspace Events
 proc onWsID(data: pointer; handle: ptr ext_workspace_handle_v1; id: cstring) {.cdecl.} =
@@ -44,10 +50,14 @@ proc onWsState(data: pointer; handle: ptr ext_workspace_handle_v1; state: uint32
     if ws.handle == handle:
       echo "[Workspace] ", ws.name, " changed state to: ", state
 
-      if state == 1:
-        ws.state = ws.state + {active}
-      else:
-        ws.state.excl(active)
+      # Clear the old state
+      ws.state = {}
+
+      # Check each flag via bitwise AND operations
+      if (state and 1) != 0: ws.state.incl(active)
+      if (state and 2) != 0: ws.state.incl(urgent)
+      if (state and 4) != 0: ws.state.incl(hidden)
+
       return
 
 proc onWsCap(data: pointer; handle: ptr ext_workspace_handle_v1; capabilities: uint32) {.cdecl.} =

@@ -7,56 +7,63 @@
 
 proc hDesktopDotsImg(w: ptr Widget, curWS: int) =
   let centerX: float32 = float32(p.size * 2)
-  let numCircles: int = getNumWorkspaces()
+  let numDots: int = getNumWorkspaces()
   let radius: int = p.size div 10
   let color = rgba(255, 255, 255, 255)
   let ctx = w.img.newContext()
   ctx.fillStyle = color
 
   # Row configuration
-  let gap: int = 10 # Gap between circles
-  let rowWidth: int = (numCircles * radius * 2) + (gap * (numCircles - 1))
+  let gap: int = 10 # Gap between dots
+  let rowWidth: int = (numDots * radius * 2) + (gap * (numDots - 1))
   let startX: float32 = centerX - (rowWidth / 2) + float32(radius)
+  var dotPos = 0
 
   for i in 0 ..< workspaces.len:
-    let posX = startX + float32(i * (radius * 2 + gap))
-    let posY = p.size / 2
+    if hidden notin workspaces[i].state:
+      let posX = startX + float32(dotPos * (radius * 2 + gap))
+      let posY = p.size / 2
+      dotPos.inc
 
-    if workspaces[i].num == curWS:
-      ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
-    else:
-      ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
+      if active in workspaces[i].state:
+        ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
+      else:
+        ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
 
 proc vDesktopDotsImg(w: ptr Widget, curWS: int) =
   let centerX: float32 = float32(p.size * 2)
-  let numCircles: int = getNumWorkspaces()
+  let numDots: int = getNumWorkspaces()
   let radius: int = p.size div 10
   let color = rgba(255, 255, 255, 255)
   let ctx = w.img.newContext()
   ctx.fillStyle = color
 
   # Row configuration
-  let gap: int = 10 # Gap between circles
-  let rowHeight: int = (numCircles * radius * 2) + (gap * (numCircles - 1))
+  let gap: int = 10 # Gap between dots
+  let rowHeight: int = (numDots * radius * 2) + (gap * (numDots - 1))
   let startX: float32 = centerX - (rowHeight / 2) + float32(radius)
+  var dotPos = 0
 
   for i in 0 ..< workspaces.len:
-    let posX = p.size / 2
-    let posY = startX + float32(i * (radius * 2 + gap))
+    if hidden notin workspaces[i].state:
+      let posX = p.size / 2
+      let posY = startX + float32(dotPos * (radius * 2 + gap))
+      dotPos.inc
 
-    if workspaces[i].num == curWS:
-      ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
-    else:
-      ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
+      if active in workspaces[i].state:
+        ctx.fillCircle(circle(vec2(posX, posY), float32(radius + 2)))
+      else:
+        ctx.fillCircle(circle(vec2(posX, posY), float32(radius)))
 
 proc hDesktopNumbersImg(w: ptr Widget, curWS: int) =
   var text = ""
 
-  for workspace in workspaces:
-    if workspace.num == curWS:
-      text = text & "[" & $workspace.num & "]"
-    else:
-      text = text & "\xA0" & $workspace.num & "\xA0"
+  for i in 0 ..< workspaces.len:
+    if hidden notin workspaces[i].state:
+      if active in workspaces[i].state:
+        text = text & "[" & $workspaces[i].num & "]"
+      else:
+        text = text & "\xA0" & $workspaces[i].num & "\xA0"
 
   # Draw Text
   font.size = 15
@@ -76,11 +83,12 @@ proc hDesktopNumbersImg(w: ptr Widget, curWS: int) =
 proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
   var text = ""
 
-  for workspace in workspaces:
-    if workspace.num == curWS:
-      text = text & "[" & $workspace.num & "]" & "\n"
-    else:
-      text = text & "\xA0" & $workspace.num & "\xA0" & "\n"
+  for i in 0 ..< workspaces.len:
+    if hidden notin workspaces[i].state:
+      if active in workspaces[i].state:
+        text = text & "[" & $workspaces[i].num & "]" & "\n"
+      else:
+        text = text & "\xA0" & $workspaces[i].num & "\xA0" & "\n"
 
   # Draw Text
   font.size = 15
@@ -98,7 +106,7 @@ proc vDesktopNumbersImg(w: ptr Widget, curWS: int) =
   w.img.fillText(layout, translate(vec2(0, 0)))
 
 proc desktopNumImg(w: ptr Widget, curWS: int) =
-  let text = $curWS
+  let text = $getCurrentWS()
   font.size = 15
   font.paint.color = color(1, 1, 1) # White
 
