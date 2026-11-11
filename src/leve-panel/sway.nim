@@ -212,5 +212,6 @@ proc getSwayFD(): cint =
 
   # Get initial desktops
   initSwayWorkspaces()
+  useSwayIPC = true
 
   return cint(sway_fd)

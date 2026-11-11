@@ -12,14 +12,32 @@ proc getCurrentWS(): int =
     if active in workspace.state:
       return workspace.num
 
-proc getNumWorkspaces(): int =
-  var numWs = 0
+proc getNumWorkspaces(): int32 =
+  var numWs: int32 = 0
 
   for workspace in workspaces:
     if hidden notin workspace.state:
       numWs.inc
 
   return numWs
+
+proc activateWS(manager: ptr extWorkspaceManagerV1, workspace: ptr extWorkspaceHandleV1) =
+  if workspace == nil or manager == nil:
+    raise newException(ValueError, "Workspace or Manager handles cannot be nil")
+  
+  # Send the activate request for the workspace handle
+  ext_workspace_handle_v1_activate(workspace)
+  
+  # Commit the changes to tell the compositor to process the request
+  ext_workspace_manager_v1_commit(manager)
+
+proc activateSwayWS(ws: int) =
+  let exitCode = execCmd("swaymsg workspace " & $ws)
+  
+  if exitCode == 0:
+    echo "Successfully switched to workspace " & $ws
+  else:
+    echo "Failed to switch workspace. Make sure you are running inside a Sway session."
 
 # Handle Workspace Events
 proc onWsID(data: pointer; handle: ptr ext_workspace_handle_v1; id: cstring) {.cdecl.} =

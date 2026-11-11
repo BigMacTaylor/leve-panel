@@ -143,6 +143,8 @@ type Indicator = enum
   num
   numbers
   dots
+  pills
+  classic
 
 type WidgetType = enum
   favorite
@@ -172,15 +174,21 @@ type CallBack = tuple
   event: Event
   handler: proc(data: pointer)
 
-type CallBacks = seq[CallBack]
+type Button = object
+  data: pointer
+  xStart: int32
+  xEnd: int32
+  yStart: int32
+  yEnd: int32
 
 type Widget = ref object
-  widgetType: WidgetType
+  img: Image
+  callBacks: seq[CallBack]
+  buttons: seq[Button]
   startPos: array[2, int]
   endPos: array[2, int]
+  widgetType: WidgetType
   roundedSide: Side
-  img: Image
-  callBacks: CallBacks
 
 type WsFlag = enum
   active
@@ -201,6 +209,7 @@ template debug(args: varargs[untyped]) =
   when not defined(release) and not defined(danger):
     system.debugEcho(args)
 
+var useSwayIPC = false
 var drawDesktopImg: imgProc
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]
