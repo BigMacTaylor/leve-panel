@@ -18,9 +18,9 @@ proc getTime(): string =
 
   return time & "\n" & date
 
-proc onClock(data: pointer) =
+proc onClock(data: pointer, item: PanelItem) =
   debug "open clock widget"
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawClockImg(w: ptr Widget) =
   let text = getTime()
@@ -38,7 +38,7 @@ proc drawClockImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newClockWidget(i: PanelItem, pos: float32): Widget =
+proc newClockWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -59,7 +59,7 @@ proc newClockWidget(i: PanelItem, pos: float32): Widget =
       newImage(p.size, p.size * 2)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onClock(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onClock(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

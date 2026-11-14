@@ -5,9 +5,9 @@
 #
 # ========================================================================================
 
-proc onMenuBtn(data: pointer) =
+proc onMenuBtn(data: pointer, item: PanelItem) =
   debug "open menu"
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawMenuImg(w: ptr Widget) =
   let iconSize = if p.iconSize > 24:
@@ -35,7 +35,7 @@ proc drawMenuImg(w: ptr Widget) =
   let sizedIcon = icon.resize(iconSize, iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newMenuWidget(i: PanelItem, pos: float32): Widget =
+proc newMenuWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -52,7 +52,7 @@ proc newMenuWidget(i: PanelItem, pos: float32): Widget =
   let img = newImage(p.size, p.size)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onMenuBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onMenuBtn(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

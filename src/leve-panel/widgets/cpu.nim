@@ -67,9 +67,9 @@ proc getCpuText(): string =
 
   return "CPU\n" & "\xA0\xA0" & $num & "%"
 
-proc onCpuBtn(data: pointer) =
+proc onCpuBtn(data: pointer, item: PanelItem) =
   debug "open btop"
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawCpuImg(w: ptr Widget) =
   let text = getCpuText()
@@ -87,7 +87,7 @@ proc drawCpuImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newCpuWidget(i: PanelItem, pos: float32): Widget =
+proc newCpuWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -104,7 +104,7 @@ proc newCpuWidget(i: PanelItem, pos: float32): Widget =
   let img = newImage(p.size, p.size)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onCpuBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onCpuBtn(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

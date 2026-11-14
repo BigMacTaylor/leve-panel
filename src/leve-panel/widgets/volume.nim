@@ -125,9 +125,9 @@ proc drawVolImg(w: ptr Widget) =
 #                                    Callbacks
 # ----------------------------------------------------------------------------------------
 
-proc onVolClick(data: pointer) =
+proc onVolClick(data: pointer, item: PanelItem) =
   debug "open volume control"
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc onMute(data: pointer) =
   debug "on mute"
@@ -235,7 +235,7 @@ proc volDown(data: pointer) =
 #                                    Create Widget
 # ----------------------------------------------------------------------------------------
 
-proc newVolWidget(i: PanelItem, pos: float32): Widget =
+proc newVolWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -254,7 +254,7 @@ proc newVolWidget(i: PanelItem, pos: float32): Widget =
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
   if getSinkStatus():
-    let click: CallBack = (Event.click_m, proc(data: pointer) = onVolClick(addr i))
+    let click: CallBack = (Event.click_m, proc(data: pointer) = onVolClick(data, item))
     callBacks.add(click)
     let mute: CallBack = (Event.click_l, onMute)
     callBacks.add(mute)

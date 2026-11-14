@@ -57,7 +57,7 @@ proc trimWhiteSpace(i: Image): Image =
   else:
     return i
 
-proc exec(data: ptr PanelItem) =
+proc exec(data: PanelItem) =
   var cmd = data.exec
 
   # Trim '%' and everything afterwards
@@ -79,9 +79,9 @@ proc exec(data: ptr PanelItem) =
 
   discard execShellCmd(cmd & " &")
 
-proc onFavClick(data: pointer) =
+proc onFavClick(data: pointer, item: PanelItem) =
   debug "fav click"
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawFavImg(w: ptr Widget, fav: PanelItem) =
   let padding = (p.size - p.iconSize) / 2
@@ -119,7 +119,7 @@ proc drawFavImg(w: ptr Widget, fav: PanelItem) =
   let sizedIcon = icon.resize(p.iconSize, p.iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newFavWidget(fav: PanelItem, pos: float32): Widget =
+proc newFavWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -136,7 +136,7 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
   let img = newImage(p.size, p.size)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onFavClick(addr fav))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onFavClick(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget
@@ -148,6 +148,6 @@ proc newFavWidget(fav: PanelItem, pos: float32): Widget =
     callBacks: callBacks,
   )
 
-  drawFavImg(addr widget, fav)
+  drawFavImg(addr widget, item)
 
   return widget

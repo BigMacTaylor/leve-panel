@@ -41,9 +41,9 @@ proc getMemText(): string =
 
   return "Mem\n" & "\xA0\xA0" & $num & "%"
 
-proc onMemBtn(data: pointer) =
+proc onMemBtn(data: pointer, item: PanelItem) =
   debug "open btop "
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawMemImg(w: ptr Widget) =
   let text = getMemText()
@@ -61,7 +61,7 @@ proc drawMemImg(w: ptr Widget) =
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
 
-proc newMemWidget(i: PanelItem, pos: float32): Widget =
+proc newMemWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -78,7 +78,7 @@ proc newMemWidget(i: PanelItem, pos: float32): Widget =
   let img = newImage(p.size, p.size)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onMemBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onMemBtn(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

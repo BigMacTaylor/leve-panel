@@ -5,9 +5,9 @@
 #
 # ========================================================================================
 
-proc onPowerBtn(data: pointer) =
+proc onPowerBtn(data: pointer, item: PanelItem) =
   debug "power off menu "
-  exec(cast[ptr PanelItem](data))
+  exec(item)
 
 proc drawPowerImg(w: ptr Widget) =
   let iconSize = if p.iconSize > 24:
@@ -32,7 +32,7 @@ proc drawPowerImg(w: ptr Widget) =
   let sizedIcon = icon.resize(iconSize, iconSize)
   w.img.draw(sizedIcon, translate(vec2(padding.float32, padding.float32)))
 
-proc newPowerWidget(i: PanelItem, pos: float32): Widget =
+proc newPowerWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -49,7 +49,7 @@ proc newPowerWidget(i: PanelItem, pos: float32): Widget =
   let img = newImage(p.size, p.size)
 
   # Create callbacks
-  let click: CallBack = (Event.click_l, proc(data: pointer) = onPowerBtn(addr i))
+  let click: CallBack = (Event.click_l, proc(data: pointer) = onPowerBtn(data, item))
   let callBacks: seq[CallBack] = @[click]
 
   # Create widget

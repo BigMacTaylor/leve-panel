@@ -553,9 +553,7 @@ proc vDesktopClassicImg(w: ptr Widget, curWS: int) =
 #                                    Callbacks
 # ----------------------------------------------------------------------------------------
 
-#proc onWsSwitcher(data: pointer) {.nimcall.} =
-proc onWsSwitcher(data: pointer) =
-  echo "onWS"
+proc onWsSwitcher(data: pointer, item: PanelItem) =
   if data == nil: return
   let w = cast[ptr Widget](data)
   #TODO let w = cast[Widget](data)
@@ -588,13 +586,15 @@ proc onWsSwitcher(data: pointer) =
         if s.ws_manager != nil:
           s.ws_manager.activateWS(wsHandle)
       
-      break # Target found, exit loop immediately
+      return
+
+  exec(item)
 
 # ----------------------------------------------------------------------------------------
 #                                    Widget
 # ----------------------------------------------------------------------------------------
 
-proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
+proc newDesktopWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
       [int(pos), 0]
@@ -603,12 +603,12 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
 
   let endPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
-      if i.style == num:
+      if item.style == num:
         [int(pos) + int(p.size), int(p.size)]
       else:
         [int(pos) + (4 * p.size), int(p.size)]
     else:
-      if i.style == num:
+      if item.style == num:
         [int(p.size), int(pos) + int(p.size)]
       else:
         [int(p.size), int(pos) + (4 * p.size)]
@@ -616,7 +616,7 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
   let horizontal = p.pos == top or p.pos == bottom
 
   # Create Image Proc
-  drawDesktopImg = case i.style
+  drawDesktopImg = case item.style
     of Indicator.dots:
       if horizontal: hDesktopDotImg else: vDesktopDotImg
     of Indicator.numbers:
@@ -629,7 +629,7 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
       desktopNumImg
 
   # Create Image
-  let img = if (i.style == Indicator.num):
+  let img = if (item.style == Indicator.num):
     newImage(p.size, p.size)
   else:
     if horizontal:
@@ -639,7 +639,7 @@ proc newDesktopWidget(i: PanelItem, pos: float32): Widget =
 
   # Create callbacks
   var callBacks: seq[CallBack] = @[]
-  let gotoWS: CallBack = (Event.click_l, onWsSwitcher)
+  let gotoWS: CallBack = (Event.click_l, proc(data: pointer) = onWsSwitcher(data, item))
   callBacks.add(gotoWS)
 
   # Create widget
