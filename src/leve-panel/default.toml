@@ -50,8 +50,7 @@ terminal = false
 # Center Widgets
 [[Center]]
 widget = "desktop"
-style = "dots" # "num", "numbers", "dots"
-
+style = "dots" # "num", "numbers", "dots", "pills", "classic"
 
 # Widgets on right side
 # are added from right to left
@@ -62,6 +61,7 @@ terminal = false
 
 [[Right]]
 widget = "clock"
+show_date = true
 exec = "gsimplecal"
 terminal = false
 

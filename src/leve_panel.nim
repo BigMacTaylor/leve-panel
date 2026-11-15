@@ -210,6 +210,7 @@ template debug(args: varargs[untyped]) =
     system.debugEcho(args)
 
 var useSwayIPC = false
+var useDateTime = false
 var drawDesktopImg: imgProc
 var widgets: seq[Widget] = @[]
 var workspaces: seq[WorkspaceData] = @[]

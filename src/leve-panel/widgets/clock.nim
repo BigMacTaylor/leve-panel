@@ -14,6 +14,12 @@ proc getClockTT(): string =
 proc getTime(): string =
   let now = now()
   let time = now.format("h:mm tt")
+
+  return time
+
+proc getDateTime(): string =
+  let now = now()
+  let time = now.format("h:mm tt")
   let date = now.format("MM/d/YYYY")
 
   return time & "\n" & date
@@ -23,8 +29,11 @@ proc onClock(data: pointer, item: PanelItem) =
   exec(item)
 
 proc drawClockImg(w: ptr Widget) =
-  let text = getTime()
-  font.size = 15
+  let text = if useDateTime:
+      font.size = 15; getDateTime()
+    else:
+      font.size = 18; getTime()
+
   font.paint.color = color(1, 1, 1) # White
 
   # Center text both horizontally and vertically
@@ -74,4 +83,3 @@ proc newClockWidget(item: PanelItem, pos: float32): Widget =
   drawClockImg(addr widget)
 
   return widget
-

@@ -94,6 +94,10 @@ proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
           continue
       else: continue
 
+    if item.widget == WidgetType.clock:
+      if elem.hasKey("show_date"):
+        useDateTime = elem["show_date"].getBool()
+
     if elem.hasKey("icon"):
       item.icon = getIconPath(elem["icon"].getStr())
     if elem.hasKey("exec"):
