@@ -52,6 +52,15 @@ type PanelPos = enum
   left
   right
 
+type
+  PanelSignal = enum
+    sigClock
+    sigStats
+    sigVolume
+    sigDesktop
+
+  PanelSignals = set[PanelSignal]
+
 type Layer = enum
   background
   bottom
@@ -412,20 +421,13 @@ proc main() =
   # Commit surface
   p.surface.wl_surface_commit()
 
-  let fds = getFDs()
-  var curWS = 0
-  var timeOut: cint = -1
-
-  var updateClock = false
-  var updateStats = false
-  var updateVol = false
-  var updateDesktop = false
-
-  echo "\nLeve-Panel: Clock Running... \n"
-
   # ----------------------------------------------------------------------------------------
   #                                  Event Loop
   # ----------------------------------------------------------------------------------------
+
+  let fds = getFDs()
+
+  echo "\nLeve-Panel: Clock Running... \n"
 
   while true:
     debug GC_getStatistics()
@@ -437,8 +439,10 @@ proc main() =
     discard wl_display_flush(s.display)
 
     # Poll FDs (timeout of -1 means block indefinitely)
-    if poll(addr fds[0], 3, timeOut) < 0:
+    if poll(addr fds[0], 3, -1) < 0:
       break
+
+    var signals: PanelSignals = {}
 
     # Handle Wayland Events
     if (fds[0].revents and POLLIN) != 0:
@@ -455,73 +459,71 @@ proc main() =
       debug "\nTick: ", now().format("HH:mm:ss")
 
       let second = now().second
-      updateClock = (second == 0)
-      updateStats = (second mod 2 == 0)
+      if second == 0: signals.incl(sigClock)
+      if second mod 2 == 0: signals.incl(sigStats)
 
       # Check volume pipe for data
       if volProcess.hasDataStdout():
         debug "Update volume state"
+        let oldMute = volMute
+        let oldVol = curVol
+        
         volMute = getMute()
         curVol = getVolume()
 
         # Read all content to "clear" it from buffer
         discard volProcess.readStdout()
 
-        # Check volume state
-        let newVolState = getVolState()
-        if volState != newVolState:
-          volState = newVolState
-          updateVol = true
+        if oldMute != volMute or oldVol != curVol:
+          volState = getVolState()
+          signals.incl(sigVolume)
 
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
       if handleSwayIpcEvents(fds[2].fd):
-        updateDesktop = true
-        timeOut = 5
-        continue # Yield back to the poll loop
-
+        signals.incl(sigDesktop)
 
     # Update Widgets
-    if updateClock or updateStats or updateVol or updateDesktop:
+    if signals != {}:
       p.surface.wl_surface_attach(p.buffer, 0, 0)
+      var surfaceDamaged = false
+
       for widget in widgets:
         case widget.widgetType
         of WidgetType.clock:
-          if updateClock:
+          if sigClock in signals:
             clearBgImg(addr widget)
             drawClockImg(addr widget)
             updateWidget(addr widget)
-        of WidgetType.cpu:
-          if updateStats:
-            clearBgImg(addr widget)
-            drawCpuImg(addr widget)
-            updateWidget(addr widget)
-        of WidgetType.mem:
-          if updateStats:
-            clearBgImg(addr widget)
-            drawMemImg(addr widget)
-            updateWidget(addr widget)
+            surfaceDamaged = true
         of WidgetType.volume:
-          if updateVol:
+          if sigVolume in signals:
             clearBgImg(addr widget)
             drawVolImg(addr widget)
             updateWidget(addr widget)
+            surfaceDamaged = true
         of WidgetType.desktop:
-          if updateDesktop:
+          if sigDesktop in signals:
             clearBgImg(addr widget)
-            drawDesktopImg(addr widget, curWS)
+            drawDesktopImg(addr widget, 0)
             updateWidget(addr widget)
-            timeOut = -1
-        else:
-          discard
-
-      updateClock = false
-      updateStats = false
-      updateVol = false
-      updateDesktop = false
+            surfaceDamaged = true
+        of WidgetType.cpu:
+          if sigStats in signals:
+            if drawCpuImg(addr widget):
+              updateWidget(addr widget)
+              surfaceDamaged = true
+        of WidgetType.mem:
+          if sigStats in signals:
+            if drawMemImg(addr widget):
+              updateWidget(addr widget)
+              surfaceDamaged = true
+        else: discard
 
       # Commit Wayland Surface
-      p.surface.wl_surface_commit()
+      if surfaceDamaged:
+        debug "commit surface"
+        p.surface.wl_surface_commit()
 
   # Cleanup
   discard munmap(cast[pointer](p.pixelData), displayInfo.width * 4 * p.size)

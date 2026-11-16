@@ -9,6 +9,7 @@ type CpuTime = object
   user, nice, system, idle, iowait, irq, softirq, steal: int
 
 var cpuTime: CpuTime
+var cpuText = ""
 
 proc getCpuTime(): CpuTime =
   # Reads the first line of /proc/stat
@@ -71,8 +72,17 @@ proc onCpuBtn(data: pointer, item: PanelItem) =
   debug "open btop"
   exec(item)
 
-proc drawCpuImg(w: ptr Widget) =
+proc drawCpuImg(w: ptr Widget): bool =
   let text = getCpuText()
+
+  if text == cpuText and w.img != nil:
+    return false
+
+  cpuText = text
+
+  # Clear background before redraw
+  clearBgImg(w)
+
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 
@@ -86,6 +96,7 @@ proc drawCpuImg(w: ptr Widget) =
 
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
+  return true
 
 proc newCpuWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
@@ -116,6 +127,6 @@ proc newCpuWidget(item: PanelItem, pos: float32): Widget =
     callBacks: callBacks,
   )
 
-  drawCpuImg(addr widget)
+  discard drawCpuImg(addr widget)
 
   return widget

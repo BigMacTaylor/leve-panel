@@ -11,6 +11,8 @@ type
     availableKb: int
     usedPercent: float
 
+var memText = ""
+
 proc getMemoryStats(): MemStats =
   # Parse /proc/meminfo to extract total and available RAM
   let lines = readFile("/proc/meminfo").splitLines()
@@ -45,8 +47,17 @@ proc onMemBtn(data: pointer, item: PanelItem) =
   debug "open btop "
   exec(item)
 
-proc drawMemImg(w: ptr Widget) =
+proc drawMemImg(w: ptr Widget): bool =
   let text = getMemText()
+
+  if text == memText and w.img != nil:
+    return false
+
+  memText = text
+
+  # Clear background before redraw
+  clearBgImg(w)
+
   font.size = 14
   font.paint.color = color(1, 1, 1) # White
 
@@ -60,6 +71,7 @@ proc drawMemImg(w: ptr Widget) =
 
   # Draw the text within the specified bounds, centered
   w.img.fillText(layout, translate(vec2(0, 0)))
+  return true
 
 proc newMemWidget(item: PanelItem, pos: float32): Widget =
   let startPos: array[2, int] =
@@ -90,6 +102,6 @@ proc newMemWidget(item: PanelItem, pos: float32): Widget =
     callBacks: callBacks,
   )
 
-  drawMemImg(addr widget)
+  discard drawMemImg(addr widget)
 
   return widget
