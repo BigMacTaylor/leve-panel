@@ -82,17 +82,13 @@ proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
     if elem.hasKey("widget"):
       try:
         item.widget = parseEnum[WidgetType](elem["widget"].getStr())
-      except:
-        continue
+      except: continue
     else: continue
 
-    if item.widget == WidgetType.desktop:
-      if elem.hasKey("style"):
-        try:
-          item.style = parseEnum[Indicator](elem["style"].getStr())
-        except:
-          continue
-      else: continue
+    if elem.hasKey("style"):
+      try:
+        item.style = parseEnum[Indicator](elem["style"].getStr())
+      except: discard
 
     if item.widget == WidgetType.clock:
       if elem.hasKey("show_date"):
@@ -119,15 +115,6 @@ proc checkElems(elements: seq[TomlValueRef]) =
         echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
         continue
     else: continue
-
-    if item.widget == WidgetType.desktop:
-      if elem.hasKey("style"):
-        try:
-          item.style = parseEnum[Indicator](elem["style"].getStr())
-        except:
-          echo "Config Error: Invalid desktop style \"", elem["style"].getStr(), "\""
-          continue
-      else: continue
 
 proc parseConfig(configFile: string) =
   echo "\nReading config... \n"
