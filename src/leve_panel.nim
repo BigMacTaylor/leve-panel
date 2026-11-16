@@ -475,24 +475,7 @@ proc main() =
 
     # Handle Sway IPC Events
     if (fds[2].revents and POLLIN) != 0:
-      # Read the 14-Byte Response Header
-      let headerBytes = readExact(fds[2].fd, 14)
-
-      # Verify magic string
-      if headerBytes[0..5] != "i3-ipc":
-        echo "Error: Invalid IPC magic string received."
-      else:
-        # Get payload length from bytes 6 to 9
-        var replyLen: uint32
-        copyMem(addr replyLen, addr headerBytes[6], 4)
-
-        # Get message type from bytes 10 to 13
-        var replyType: uint32
-        copyMem(addr replyType, addr headerBytes[10], 4)
-
-        # Read JSON Payload
-        let json = readExact(fds[2].fd, int(replyLen))
-        curWS = getWsFromJson(json)
+      if handleSwayIpcEvents(fds[2].fd):
         updateDesktop = true
         timeOut = 5
         continue # Yield back to the poll loop

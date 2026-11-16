@@ -103,9 +103,8 @@ proc initSwayWorkspaces() =
       wsData.state = wsData.state + {active}
     workspaces.add(wsData)
 
-# Helper to construct a raw Sway IPC message packet
 proc createIpcPacket(msgType: uint32, payload: string): string =
-# Package an IPC command with headers: Magic string, length, and type
+  ## Create a Sway IPC message packet with headers: Magic string, length, and type
   let len = payload.len.int32
   result = IPC_MAGIC & "\0\0\0\0" & "\x02\0\0\0" # 2 for subscribe
   # Replace \0\0\0\0 with our actual len (in little endian)
@@ -115,8 +114,8 @@ proc createIpcPacket(msgType: uint32, payload: string): string =
   result[9] = char((len shr 24) and 0xFF)
   result.add(payload)
 
-# Helper to read an exact amount of bytes from the socket
 proc readExact(fd: cint, bytesToRead: int): string =
+  ## Read an exact amount of bytes from the socket
   result = newString(bytesToRead)
   var totalRead = 0
   while totalRead < bytesToRead:
@@ -125,6 +124,51 @@ proc readExact(fd: cint, bytesToRead: int): string =
       echo("Error: Sway connection closed or failed while reading.")
       break
     totalRead += chunk
+
+proc handleSwayIpcEvents(fd: cint): bool =
+  ## Reads pending events from the Sway socket
+  debug "recieved sway event"
+
+  # Read the 14-Byte Response Header
+  let headerBytes = try:
+    readExact(fd, 14)
+  except Exception as e:
+    echo "Error reading Sway IPC header: ", e.msg
+    return false
+
+  # Verify magic string
+  if headerBytes[0..5] != "i3-ipc":
+    echo "Error: Invalid IPC magic string received."
+    return false
+
+  # Get payload length from bytes 6 to 9
+  var replyLen: uint32
+  copyMem(addr replyLen, addr headerBytes[6], 4)
+
+  # Get message type from bytes 10 to 13
+  #var replyType: uint32
+  #copyMem(addr replyType, addr headerBytes[10], 4)
+
+  # Read JSON Payload for the first event
+  let json = readExact(fd, int(replyLen))
+  discard getWsFromJson(json)
+
+  # Check if more rapid events filled up the OS buffer.
+  var checkFd = TPollfd(fd: fd, events: POLLIN)
+  
+  while poll(addr checkFd, 1, 0) > 0:
+    let nextHeader = readExact(fd, 14)
+    if nextHeader[0..5] != "i3-ipc": break
+    
+    var nextLen: uint32
+    copyMem(addr nextLen, addr nextHeader[6], 4)
+
+    # Read JSON Payload for the remaining events
+    let nextJson = readExact(fd, int(nextLen))
+    discard getWsFromJson(nextJson)
+
+  echo "[Sway] Event finished. \n"
+  return true
 
 func parseNum(text: string): int =
   var numStr = ""
