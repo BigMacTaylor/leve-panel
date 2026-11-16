@@ -6,8 +6,8 @@
 # ========================================================================================
 
 var volMute = false
-var cur_vol = 100
-var volState = VolState.mute
+var curVol = 100
+var volState = WidgetState.off
 var volProcess: Subprocess
 
 proc getSinkStatus(): bool =
@@ -60,21 +60,18 @@ proc getVolume(): int =
       echo "Error: Could not get volume level"
       100
 
-proc getVolState(): VolState =
-  if cur_vol <= 0 or volMute:
-    return VolState.mute
-  elif cur_vol > 0 and cur_vol <= 50:
-    return VolState.low
-  elif cur_vol > 50 and cur_vol <= 75:
-    return VolState.med
-  else: # cur_vol > 75
-    return VolState.high
+proc getVolState(): WidgetState =
+  if volMute or curVol <= 0: return WidgetState.off
+  elif curVol <= 50: return WidgetState.low
+  elif curVol <= 75: return WidgetState.med
+  else: # curVol > 75
+    return WidgetState.high
 
 proc checkVolStatus() =
   echo "\nChecking volume status... \n"
   if getSinkStatus():
     volMute = getMute()
-    cur_vol = getVolume()
+    curVol = getVolume()
     volState = getVolState()
   else:
     volProcess.close()
@@ -93,21 +90,8 @@ proc drawVolImg(w: ptr Widget) =
       p.iconSize
 
   let padding = (p.size - iconSize) / 2
-  var iconName: string
 
-  case volState
-  of VolState.mute:
-    iconName = "audio-volume-muted-symbolic.png"
-  of VolState.low:
-    iconName = "audio-volume-low-symbolic.png"
-  of VolState.med:
-    iconName = "audio-volume-medium-symbolic.png"
-  else: # High
-    iconName = "audio-volume-high-symbolic.png"
-
-  var iconPath = getConfigDir() / "icons" / iconName
-  if not fileExists(iconPath):
-    iconPath = "/usr/share/leve-panel/icons" / iconName
+  let iconPath = getStateIconPath("volume", volState)
 
   # Load Icon
   echo "Load icon: ", iconPath
@@ -136,7 +120,7 @@ proc onMute(data: pointer) =
   if volMute:
     volMute = false
     discard execShellCmd(cmd & "0")
-    tt.text = "Volume: " & $cur_vol & "%"
+    tt.text = "Volume: " & $curVol & "%"
   else:
     volMute = true
     discard execShellCmd(cmd & "1")
@@ -160,21 +144,21 @@ proc volUp(data: pointer) =
   let curVolState = volState
 
   # Check bounds
-  if cur_vol >= 100 and not volMute:
+  if curVol >= 100 and not volMute:
     return
 
   let cmd = "pactl set-sink-volume @DEFAULT_SINK@ "
 
   # Change current volume level
-  if cur_vol < 95:
-    cur_vol = cur_vol + 5
-    discard execShellCmd(cmd & $cur_vol & "%")
+  if curVol < 95:
+    curVol = curVol + 5
+    discard execShellCmd(cmd & $curVol & "%")
   else:
-    cur_vol = 100
+    curVol = 100
     discard execShellCmd(cmd & "100%")
 
   # Unmute on scroll up
-  #if cur_vol <= 0 or volMute:
+  #if curVol <= 0 or volMute:
   if volMute:
     volMute = false
     let muteCmd = "pactl set-sink-mute @DEFAULT_SINK@ "
@@ -182,7 +166,7 @@ proc volUp(data: pointer) =
   debug "mute state ", volMute
 
   # Update tooltip
-  tt.text = "Volume: " & $cur_vol & "%"
+  tt.text = "Volume: " & $curVol & "%"
   updateTooltip(addr tt)
   tt.surface.wl_surface_commit()
 
@@ -202,21 +186,21 @@ proc volDown(data: pointer) =
   let curVolState = volState
 
   # Check bounds
-  if cur_vol <= 0:
+  if curVol <= 0:
     return
 
   let cmd = "pactl set-sink-volume @DEFAULT_SINK@ "
 
   # Change current volume level
-  if cur_vol > 5:
-    cur_vol = cur_vol - 5
-    discard execShellCmd(cmd & $cur_vol & "%")
+  if curVol > 5:
+    curVol = curVol - 5
+    discard execShellCmd(cmd & $curVol & "%")
   else:
-    cur_vol = 0
+    curVol = 0
     discard execShellCmd(cmd & "0%")
 
   # Update tooltip
-  tt.text = "Volume: " & $cur_vol & "%"
+  tt.text = "Volume: " & $curVol & "%"
   updateTooltip(addr tt)
   tt.surface.wl_surface_commit()
 

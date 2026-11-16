@@ -57,6 +57,51 @@ proc trimWhiteSpace(i: Image): Image =
   else:
     return i
 
+proc getStateIconPath(subsystem: string, state: WidgetState): string =
+  ## Returns the absolute file path for an icon based on the subsystem and its structural WidgetState.
+  var iconName: string
+
+  case subsystem.toLowerAscii()
+  of "volume":
+    case state
+    of WidgetState.off:     iconName = "audio-volume-muted-symbolic.png"
+    of WidgetState.low:     iconName = "audio-volume-low-symbolic.png"
+    of WidgetState.med:     iconName = "audio-volume-medium-symbolic.png"
+    of WidgetState.high:    iconName = "audio-volume-high-symbolic.png"
+    of WidgetState.special: iconName = "audio-volume-high-symbolic.png" # Fallback if ever triggered
+
+  of "wifi":
+    case state
+    of WidgetState.off:     iconName = "network-offline-symbolic.png"
+    of WidgetState.low:     iconName = "network-wireless-signal-weak-symbolic.png" # Or ok-symbolic
+    of WidgetState.med:     iconName = "network-wireless-signal-good-symbolic.png"
+    of WidgetState.high:    iconName = "network-wireless-signal-excellent-symbolic.png"
+    of WidgetState.special: iconName = "network-wireless-signal-excellent-symbolic.png"
+
+  of "ethernet":
+    case state
+    of WidgetState.off:     iconName = "network-offline-symbolic.png"
+    of WidgetState.low:     iconName = "network-wireless-signal-weak-symbolic.png" # Or ok-symbolic
+    of WidgetState.med:     iconName = "network-wireless-signal-good-symbolic.png"
+    of WidgetState.high:    iconName = "network-wireless-signal-excellent-symbolic.png"
+    of WidgetState.special: iconName = "network-wired-symbolic.png" # Useful placeholder for ethernet override
+
+  of "battery":
+    case state
+    of WidgetState.off:     iconName = "battery-caution-symbolic.png"     # Critical/Empty
+    of WidgetState.low:     iconName = "battery-low-symbolic.png"
+    of WidgetState.med:     iconName = "battery-good-symbolic.png"        # Or medium-symbolic
+    of WidgetState.high:    iconName = "battery-full-symbolic.png"
+    of WidgetState.special: iconName = "battery-charging-symbolic.png"    # Connected to power
+
+  else:
+    iconName = "image-missing-symbolic.png" # Generic fallback asset
+
+  # Match your existing project path resolution logic
+  result = getConfigDir() / "icons" / iconName
+  if not fileExists(result):
+    result = "/usr/share/leve-panel/icons" / iconName
+
 proc exec(data: PanelItem) =
   var cmd = data.exec
 

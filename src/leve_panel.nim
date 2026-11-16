@@ -133,11 +133,12 @@ type
     value: string
     children: seq[SubMenu]
 
-type VolState = enum
-  mute
-  low
-  med
-  high
+type WidgetState = enum
+  off       # Muted, Disconnected, or Critical Battery
+  low       # Low volume, Weak Wi-Fi, Low Battery
+  med       # Medium volume, OK/Good Wi-Fi, Medium Battery
+  high      # High volume, Excellent Wi-Fi, Full Battery
+  special   # Optional: Charging (Battery) or Custom flag
 
 type Indicator = enum
   num
@@ -461,7 +462,7 @@ proc main() =
       if volProcess.hasDataStdout():
         debug "Update volume state"
         volMute = getMute()
-        cur_vol = getVolume()
+        curVol = getVolume()
 
         # Read all content to "clear" it from buffer
         discard volProcess.readStdout()
