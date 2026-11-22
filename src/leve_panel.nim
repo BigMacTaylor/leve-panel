@@ -149,12 +149,12 @@ type WidgetState = enum
   high      # High volume, Excellent Wi-Fi, Full Battery
   special   # Optional: Charging (Battery) or Custom flag
 
-type Indicator = enum
-  num
-  numbers
+type WidgetStyle = enum
+  classic   # Default style
+  modern    # Shows status icons
+  number
   dots
   pills
-  classic
 
 type WidgetType = enum
   favorite
@@ -168,7 +168,7 @@ type WidgetType = enum
 
 type PanelItem = object
   widget: WidgetType
-  style: Indicator
+  style: WidgetStyle
   icon: string
   exec: string
   terminal: bool

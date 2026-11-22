@@ -80,20 +80,13 @@ proc getItems(p: ptr Panel, key: string): seq[PanelItem] =
   for elem in elements:
     var item: PanelItem
     if elem.hasKey("widget"):
-      try:
-        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      try: item.widget = parseEnum[WidgetType](elem["widget"].getStr())
       except: continue
     else: continue
 
     if elem.hasKey("style"):
-      try:
-        item.style = parseEnum[Indicator](elem["style"].getStr())
+      try: item.style = parseEnum[WidgetStyle](elem["style"].getStr())
       except: discard
-
-    if item.widget == WidgetType.clock:
-      if elem.hasKey("show_date"):
-        useDateTime = elem["show_date"].getBool()
-
     if elem.hasKey("icon"):
       item.icon = getIconPath(elem["icon"].getStr())
     if elem.hasKey("exec"):
@@ -109,12 +102,17 @@ proc checkElems(elements: seq[TomlValueRef]) =
   for elem in elements:
     var item: PanelItem
     if elem.hasKey("widget"):
-      try:
-        item.widget = parseEnum[WidgetType](elem["widget"].getStr())
+      try: item.widget = parseEnum[WidgetType](elem["widget"].getStr())
       except:
-        echo "Config Error: Invalid widget name \"", elem["widget"].getStr(), "\""
+        echo "Config Error: Invalid widget type \"", elem["widget"].getStr(), "\""
         continue
     else: continue
+
+    if elem.hasKey("style"):
+      try: item.style = parseEnum[WidgetStyle](elem["style"].getStr())
+      except:
+        echo "Config Error: Invalid widget style \"", elem["style"].getStr(), "\""
+        discard
 
 proc parseConfig(configFile: string) =
   echo "\nReading config... \n"
@@ -217,4 +215,3 @@ proc parseConfig(configFile: string) =
   if config.hasKey("Right"):
     let elements = config["Right"].getElems()
     checkElems(elements)
-

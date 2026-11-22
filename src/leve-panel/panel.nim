@@ -199,7 +199,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
     if item.widget == WidgetType.clock:
       pos = pos + float32(2 * p.size)
-    elif (item.widget == WidgetType.desktop) and (item.style != num):
+    elif (item.widget == WidgetType.desktop) and (item.style != number):
       pos = pos + float32(4 * p.size)
     else:
       pos = pos + float32(p.size)
@@ -211,7 +211,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
   for item in centerItems:
     if item.widget == WidgetType.clock:
       centerItemsSize = centerItemsSize + (2 * p.size)
-    elif (item.widget == WidgetType.desktop) and (item.style != num):
+    elif (item.widget == WidgetType.desktop) and (item.style != number):
       centerItemsSize = centerItemsSize + (4 * p.size)
     else:
       centerItemsSize = centerItemsSize + p.size
@@ -234,7 +234,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
 
     if item.widget == WidgetType.clock:
       pos = pos + float32(2 * p.size)
-    elif (item.widget == WidgetType.desktop) and (item.style != num):
+    elif (item.widget == WidgetType.desktop) and (item.style != number):
       pos = pos + float32(4 * p.size)
     else:
       pos = pos + float32(p.size)
@@ -252,7 +252,7 @@ proc drawPanelImg(panel: ptr Panel): Image =
   for item in rightItems:
     if item.widget == WidgetType.clock:
       pos = pos - float32(p.size)
-    elif (item.widget == WidgetType.desktop) and (item.style != num):
+    elif (item.widget == WidgetType.desktop) and (item.style != number):
       pos = pos - float32(3 * p.size)
 
     var widget: Widget = createWidget(item, pos)

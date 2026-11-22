@@ -26,44 +26,39 @@ scroll_down = "swaymsg workspace next"
 [[Left]]
 widget = "menu"
 exec = "griddle"
-terminal = false
 
 [[Left]]
 widget = "favorite"
 icon = "folder-blue.png"
 exec = "pcmanfm"
-terminal = false
 
 [[Left]]
 widget = "favorite"
 icon = "terminal.png"
 exec = "foot"
-terminal = false
 
 [[Left]]
 widget = "favorite"
 icon = "google-chrome.png"
 exec = "google-chrome"
-terminal = false
 
 
 # Center Widgets
 [[Center]]
 widget = "desktop"
-style = "dots" # "num", "numbers", "dots", "pills", "classic"
+style = "dots" # "classic", "modern", "number", "dots", "pills"
+
 
 # Widgets on right side
 # are added from right to left
 [[Right]]
 widget = "power"
 exec = "wlogout"
-terminal = false
 
 [[Right]]
 widget = "clock"
-show_date = true
+style = "modern" # "classic", "modern" -shows date and time
 exec = "gsimplecal"
-terminal = false
 
 [[Right]]
 widget = "mem"
@@ -78,4 +73,3 @@ terminal = true
 [[Right]]
 widget = "volume"
 exec = "pavucontrol"
-terminal = false

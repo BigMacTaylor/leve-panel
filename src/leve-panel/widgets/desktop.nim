@@ -603,12 +603,12 @@ proc newDesktopWidget(item: PanelItem, pos: float32): Widget =
 
   let endPos: array[2, int] =
     if p.pos == top or p.pos == bottom:
-      if item.style == num:
+      if item.style == number:
         [int(pos) + int(p.size), int(p.size)]
       else:
         [int(pos) + (4 * p.size), int(p.size)]
     else:
-      if item.style == num:
+      if item.style == number:
         [int(p.size), int(pos) + int(p.size)]
       else:
         [int(p.size), int(pos) + (4 * p.size)]
@@ -617,19 +617,19 @@ proc newDesktopWidget(item: PanelItem, pos: float32): Widget =
 
   # Create Image Proc
   drawDesktopImg = case item.style
-    of Indicator.dots:
-      if horizontal: hDesktopDotImg else: vDesktopDotImg
-    of Indicator.numbers:
-      if horizontal: hDesktopNumbersImg else: vDesktopNumbersImg
-    of Indicator.pills:
-      if horizontal: hDesktopPillImg else: vDesktopPillImg
-    of Indicator.classic:
+    of classic:
       if horizontal: hDesktopClassicImg else: vDesktopClassicImg
+    of modern:
+      if horizontal: hDesktopNumbersImg else: vDesktopNumbersImg
+    of dots:
+      if horizontal: hDesktopDotImg else: vDesktopDotImg
+    of pills:
+      if horizontal: hDesktopPillImg else: vDesktopPillImg
     else:
       desktopNumImg
 
   # Create Image
-  let img = if (item.style == Indicator.num):
+  let img = if (item.style == number):
     newImage(p.size, p.size)
   else:
     if horizontal:

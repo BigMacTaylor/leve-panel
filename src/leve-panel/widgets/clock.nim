@@ -60,6 +60,8 @@ proc newClockWidget(item: PanelItem, pos: float32): Widget =
     else:
       [int(p.size), int(pos) + (2 * p.size)]
 
+  useDateTime = (item.style == modern)
+
   # Create Image
   let img = 
     if p.pos == top or p.pos == bottom:
